@@ -62,8 +62,23 @@ on one GPU.
   `events_per_s` 20,568; `kitlive03.resp` (job 21721089, 2 SU): photons
   394,427 rows/s, SiPM 46,625/s; `kitlive04.v4` (job 21721090, 6 SU): both
   V4 checks pass, max |PE deviation| 0.0012, deletion records present.
-  Driven from the kit's Python class on the laptop, not yet through
-  `graph.run`.
+  Driven from the kit's Python class on the laptop.
+- **`graph.run` end to end (2026-10-21):** `python -m graph.run --study
+  fastsim_bench --config fsb02 --campaign fsbtest` on the laptop (UVA
+  network), with `AUTORESEARCH_DATA_ROOT` on the laptop,
+  `AUTORESEARCH_STUDY_PATH=tests/fixtures/engine_studies` and `M2FS_CODE`
+  set: launch check, kit start over MCP, submit (UVA job 21722982,
+  A100-40), poll, results, score, and one row in
+  `leaderboard_fastsim_bench.tsv` (`events_per_s` 19,625, `first_call_s`
+  64.1). The first try (fsb01) failed in 22 s: Mu2eBO sends every `number`
+  param as a float, and `--max-events 200000.0` is not an int; the kit now
+  renders integral floats as ints (mu2e-fastsim-core `51c91a2`).
+- **Interpreter on a laptop:** a single-point `graph.run` needs only `mcp`
+  2.x and `langgraph` (the picker's torch/botorch are `closed_loop` only).
+  The conda env used had them added by pip; with `mcp` 2.3 the suite still
+  fails 32 tests that pass under `ana 2.8.0` (mcp 2.3 hides a tool's error
+  text, `activate.sh` wants /cvmfs, no botorch), none in the
+  `fastsimkit` path.
 - **Data rule:** the image and the repo hold no Mu2e-internal data; tasks
   that need the CRVConditions tables fetch them per job into node tmpfs and
   delete them (copy-compute-delete).
@@ -79,6 +94,5 @@ on one GPU.
 ## Open questions / TODO
 - Veto inefficiency and deadtime objectives (needs the full-detector
   configuration of the fast chain).
-- Run `fastsim_bench` through `graph.run` from a UVA-network host.
 - Unattended use from FNAL: Globus Compute endpoint at UVA, or a relay.
 - B200 needs an image with cuBLAS >= 13.2 before production use.

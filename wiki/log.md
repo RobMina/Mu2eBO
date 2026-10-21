@@ -6,6 +6,7 @@ heading at the TOP (create it if absent). One bullet per change:
 superseded, linted.
 
 ## 2026-10-21
+- **updated** [fastsimkit](/external/fastsimkit.md): `graph.run` on `fastsim_bench` ran end to end on UVA (fsb02, one leaderboard row); the float-param fix
 - **created** [fastsimkit](/external/fastsimkit.md): native kit for the Mu2e JAX fast chain on UVA Rivanna/Afton (kits.toml entry, smoke study `fastsim_bench`, two kit_config tests); README lists the native kits
 - **updated** [contract-engine](/drivers/contract-engine.md): kits.toml now holds toykit and fastsimkit
 
