@@ -30,8 +30,9 @@ run a point and a campaign, follow it, read the results.
     compute endpoint, one job per point: UVA Rivanna/Afton over ssh + Slurm
     today (server `mu2efastsim.endpoints.kit` in
     [RobMina/mu2e-fastsim-core](https://github.com/RobMina/mu2e-fastsim-core)).
-    Status: one smoke task (`reco_bench`) passes end to end; the kit host
-    must be on the UVA network. Smoke study:
+    Status: three tasks pass end to end (`reco_bench`, `response_bench`,
+    `v4_response`; the last two use the Mu2e-internal tables
+    copy-compute-delete); the kit host must be on the UVA network. Smoke study:
     `tests/fixtures/engine_studies/fastsim_bench.json`.
 - **Runners** — `graph.run` evaluates one point; `graph.closed_loop` runs a
   campaign (a pool of points, a picker per replacement); `graph.check_study`

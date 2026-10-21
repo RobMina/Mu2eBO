@@ -3,7 +3,7 @@ type: external
 title: fastsimkit — the Mu2e JAX fast chain as a native kit
 description: 'Native contract kit (kits.toml) for the JAX CRV fast sim/reco of RobMina/mu2e-fastsim on a compute endpoint, one Slurm job per point; UVA Rivanna/Afton over ssh today; smoke task reco_bench passes end to end (2026-10-21); kit host must be on the UVA network'
 status: active
-status_note: 'smoke task only; physics tasks (real-table response, veto objectives) in progress'
+status_note: 'three tasks pass live (reco_bench, response_bench, v4_response); veto objectives in progress'
 timestamp: '2026-10-21'
 ---
 
@@ -32,9 +32,21 @@ on one GPU.
   outputs; `${DATA_ROOT}/fastsimkit`), `FASTSIMKIT_MAX_SU_PER_JOB` (the kit
   refuses a job whose estimated charge is larger; UVA measured ~60 SU per
   A100-hour, ~140 per B200-hour), `FASTSIMKIT_SIF` (image path on the site).
-- **Params:** step `fixed` keys `task`, `events`, `seed`; `describe` lists
-  tasks and metrics. Task `reco_bench`: the synthetic CRV reco chain
-  benchmark, metrics `events_per_s`, `first_call_s`, `events`.
+- **Params:** step `fixed` keys `task`, `events`, `seed`, `rows`, `sipms`;
+  `describe` lists tasks and metrics. Tasks:
+  - `reco_bench` (`events`, `seed`): synthetic CRV reco chain throughput;
+    `events_per_s`, `first_call_s`, `events`.
+  - `response_bench` (`rows`, `sipms`, `seed`): photon and SiPM throughput
+    with the real CRVConditions table 3200_0 and photon map;
+    `photon_rows_per_s`, `photons_per_row`, `sipms_per_s`,
+    `charges_per_photon`.
+  - `v4_response` (`events`, `seed`): V4 photon and SiPM checks (JAX vs
+    numpy ports, real tables, synthetic muon CrvSteps); `v4_photons_pass`,
+    `v4_sipm_pass` (1/0), `v4_*_max_abs_pe_rel`, `v4_*_jax_s`.
+- **Copy-compute-delete:** `response_bench` and `v4_response` fetch the
+  Mu2e-internal tables per job from the CVMFS Stratum-1 into node tmpfs
+  (mode 700) and delete them in an EXIT trap that writes `out/cleanup.txt`;
+  `results` refuses a table task without that record.
 - **Idempotent submit:** a handle maps to one job; the same name with the
   same rendered script and resources returns it, a different one is refused
   (the toykit rule). Job records live in the state dir, so a restarted
@@ -47,8 +59,11 @@ on one GPU.
   `study.load_study_file` (`tests/test_kit_config.py`).
 - **Live test (2026-10-21):** point `kitlive02.bench`, UVA job 21718574
   (A100-80, 3 SU): check -> submit -> working -> completed -> results,
-  `events_per_s` 20,568. Driven from the kit's Python class on the laptop,
-  not yet through `graph.run`.
+  `events_per_s` 20,568; `kitlive03.resp` (job 21721089, 2 SU): photons
+  394,427 rows/s, SiPM 46,625/s; `kitlive04.v4` (job 21721090, 6 SU): both
+  V4 checks pass, max |PE deviation| 0.0012, deletion records present.
+  Driven from the kit's Python class on the laptop, not yet through
+  `graph.run`.
 - **Data rule:** the image and the repo hold no Mu2e-internal data; tasks
   that need the CRVConditions tables fetch them per job into node tmpfs and
   delete them (copy-compute-delete).
@@ -62,8 +77,8 @@ on one GPU.
   `mu2e/wiki/sim/uva-hpc-endpoint.md` (RobMina/ai-config-mu2e)
 
 ## Open questions / TODO
-- Physics tasks: CRV response with the real tables (stage-in inside the
-  job), then the veto inefficiency/deadtime objectives.
+- Veto inefficiency and deadtime objectives (needs the full-detector
+  configuration of the fast chain).
 - Run `fastsim_bench` through `graph.run` from a UVA-network host.
 - Unattended use from FNAL: Globus Compute endpoint at UVA, or a relay.
 - B200 needs an image with cuBLAS >= 13.2 before production use.
