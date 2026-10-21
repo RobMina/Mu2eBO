@@ -1,0 +1,20 @@
+{
+ "schema": 2,
+ "name": "fastsim_bench",
+ "note": "Smoke study for fastsimkit, not a measurement: zero knobs, one step on the UVA endpoint running the synthetic CRV reco chain benchmark (task reco_bench) in the mu2e-fastsim image on one A100; the board gets its throughput. Run with graph.run from a host on the UVA network.",
+ "knobs": [],
+ "derive": {"consts": {}, "exprs": {}, "profiles": {}},
+ "geom": null,
+ "kits": {},
+ "preflight": null,
+ "evaluate": [
+  {"step": "bench", "kit": "fastsimkit", "entry": null, "files": [], "files_from": [], "params": {}, "params_from": {}, "fixed": {"task": "reco_bench", "events": 200000, "seed": 20261021}}
+ ],
+ "objectives": [
+  {"name": "events_per_s", "metric": "bench.events_per_s", "direction": "max", "transform": "none", "noise": 0.02, "fmt": "{:.1f}"}
+ ],
+ "constraints": [],
+ "extra_metrics": [{"name": "first_call_s", "metric": "bench.first_call_s", "fmt": "{:.1f}"}],
+ "extra_columns": [],
+ "leaderboard": {"file": "leaderboards/leaderboard_fastsim_bench.tsv", "layout": "v2", "context": []}
+}

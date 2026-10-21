@@ -24,6 +24,15 @@ run a point and a campaign, follow it, read the results.
     G4's surface check) from the study's code tarball;
   - `anakit` — M. MacKenzie's analysis server (sob, flash, ce_chain's plot);
   - `beamkit` — G4beamline jobs for `ptg4bl`.
+- **Native kits** (`kits.toml`):
+  - `toykit` — the reference kit and the CI engine (`tests/toykit.py`);
+  - `fastsimkit` — the Mu2e JAX fast chain (CRV fast sim/reco) on a
+    compute endpoint, one job per point: UVA Rivanna/Afton over ssh + Slurm
+    today (server `mu2efastsim.endpoints.kit` in
+    [RobMina/mu2e-fastsim-core](https://github.com/RobMina/mu2e-fastsim-core)).
+    Status: one smoke task (`reco_bench`) passes end to end; the kit host
+    must be on the UVA network. Smoke study:
+    `tests/fixtures/engine_studies/fastsim_bench.json`.
 - **Runners** — `graph.run` evaluates one point; `graph.closed_loop` runs a
   campaign (a pool of points, a picker per replacement); `graph.check_study`
   checks a study without submitting anything.

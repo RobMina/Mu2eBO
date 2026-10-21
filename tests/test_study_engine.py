@@ -160,12 +160,14 @@ class TestLoadedStudies(TmpCase):
         # mode_specs/ ships ce_chain, the two foilspf engine twins
         # (foilsflash_ax, foilspfbpz_ax), the deployed-target baseline
         # foilspf_nominal and ptg4bl (G4beamline through beamkit), and
-        # ENGINE_STUDIES holds branin, prodtools_smoke and the C2b local
-        # acceptance fixture foilspfbpz_local.
+        # ENGINE_STUDIES holds branin, prodtools_smoke, the C2b local
+        # acceptance fixture foilspfbpz_local and the fastsimkit smoke study
+        # fastsim_bench.
         self.assertEqual(r.stdout.strip().splitlines()[-1],
-                         "['branin', 'ce_chain', 'foilsflash_ax', "
-                         "'foilspf_nominal', 'foilspfbpz_ax', "
-                         "'foilspfbpz_local', 'prodtools_smoke', 'ptg4bl']")
+                         "['branin', 'ce_chain', 'fastsim_bench', "
+                         "'foilsflash_ax', 'foilspf_nominal', "
+                         "'foilspfbpz_ax', 'foilspfbpz_local', "
+                         "'prodtools_smoke', 'ptg4bl']")
 
 
 X_GRIDPHASEA01 = [67.7974, 111.1044, 132.7585, 0.140557, 0.027008, 0.107443,

@@ -3,7 +3,7 @@ type: driver
 title: Contract engine
 description: 'The only runner — studies as JSON, kits over MCP (prodtools, offline_preflight, anakit, beamkit), run_steps, measure_sha boards, graph.run / graph.closed_loop, check_study, params_from'
 status: active
-timestamp: '2026-10-08'
+timestamp: '2026-10-21'
 ---
 
 # Contract engine
@@ -84,7 +84,8 @@ campaign (q=2, 8 points) runs end to end in 28.7 s.
   hashed by NAME only (see Open questions).
 
 ### Registry (`kits.toml`, `core/kit_config.py`, `core/kit_registry.py`)
-- `kits.toml` holds the native kits (only `[toykit]` today) and the
+- `kits.toml` holds the native kits (`[toykit]`, and `[fastsimkit]` since
+  2026-10-21: [fastsimkit](/external/fastsimkit.md)) and the
   `[servers.*]` tables the adapters start (`prodtools_write`,
   `prodtools_read`, `anakit`, `beamkit`). Every key is required and
   unknown keys are rejected (ADR-0002).

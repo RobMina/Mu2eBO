@@ -119,6 +119,23 @@ class TestRepoRegistry(unittest.TestCase):
         self.assertTrue(decl.check_kit)
         self.assertFalse(decl.uses_entries)
 
+    def test_fastsimkit_entry(self):
+        cfg = kc.load_kit_configs()["fastsimkit"]
+        self.assertEqual(cfg.executors, ("grid",))
+        self.assertIn("SSH_AUTH_SOCK", cfg.env_passthrough)
+        self.assertEqual(set(cfg.fixed_keys), {"task", "events", "seed"})
+        decl = kit_registry.KITS["fastsimkit"]
+        self.assertTrue(decl.step_kit)
+        self.assertTrue(decl.check_kit)
+        self.assertFalse(decl.requires_kerberos)
+
+    def test_fastsim_bench_study_loads(self):
+        path = (Path(__file__).parent / "fixtures" / "engine_studies"
+                / "fastsim_bench.json")
+        s = st.load_study_file(path)
+        self.assertEqual(kit_registry.kits_of(s), {"fastsimkit"})
+        self.assertEqual(s.steps[0].fixed["task"], "reco_bench")
+
 
 class TestConfigNameRule(unittest.TestCase):
     """The one rule for a config name (prodtools' run names carry it)."""

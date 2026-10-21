@@ -81,3 +81,24 @@ env_passthrough = ["KRB5CCNAME", "XDG_RUNTIME_DIR", "JOBSUB_DROPBOX_SERVER_LIST"
                    "OTEL_EXPORTER_JAEGER_TIMEOUT"]
 set = { BEAMKIT_PRODTOOLS_ROOT = "${AUTORESEARCH_PRODTOOLS}" }
 timeouts = { start = 120, get_server_info = 60, run_beamline = 900, beamline_status = 120, beamline_outputs = 120, list_beamline_runs = 60 }
+
+# The Mu2e fast chain (JAX CRV fast sim/reco) on a compute endpoint: one point
+# is one job on the endpoint (UVA Rivanna/Afton over ssh + Slurm today). The
+# server is mu2efastsim.endpoints.kit in RobMina/mu2e-fastsim-core
+# (endpoints/README in its uva/ dir); $M2FS_CODE names the umbrella checkout.
+# The kit host must reach the endpoint by ssh with a key (SSH_AUTH_SOCK); UVA
+# answers only the UVA network or the UVA Anywhere VPN. FASTSIMKIT_MAX_SU_PER_JOB
+# makes the kit refuse a job whose estimated charge is larger. Tasks and the
+# metrics they return: the kit's describe tool.
+[fastsimkit]
+command = ["${PYTHON}", "-m", "mu2efastsim.endpoints.kit"]
+env_passthrough = ["SSH_AUTH_SOCK"]
+set = { PYTHONPATH = "${M2FS_CODE}/core:${M2FS_CODE}/crv:${M2FS_CODE}/tracker", FASTSIMKIT_ENDPOINT = "uva", FASTSIMKIT_STATE_DIR = "${DATA_ROOT}/fastsimkit", FASTSIMKIT_MAX_SU_PER_JOB = "200" }
+study_keys = {}
+fixed_keys = { task = "string", events = "number", seed = "number" }
+accepts_lists = false
+check = true
+executors = ["grid"]
+launch_stagger_s = 0
+poll_s = [30.0, 300.0]
+timeouts = { start = 60, submit = 120, status = 120, results = 900, check = 30, describe = 30, cancel = 120 }

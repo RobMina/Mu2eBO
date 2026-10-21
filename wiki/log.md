@@ -5,6 +5,10 @@ heading at the TOP (create it if absent). One bullet per change:
 `<verb> <what changed> — <page>`; verbs: created, updated, merged,
 superseded, linted.
 
+## 2026-10-21
+- **created** [fastsimkit](/external/fastsimkit.md): native kit for the Mu2e JAX fast chain on UVA Rivanna/Afton (kits.toml entry, smoke study `fastsim_bench`, two kit_config tests); README lists the native kits
+- **updated** [contract-engine](/drivers/contract-engine.md): kits.toml now holds toykit and fastsimkit
+
 ## 2026-10-09
 - **updated** QUICKSTART.md, [tests](/drivers/tests.md): a fresh-eyes walkthrough (local ce_chain point,
   grid dry run, sandboxed) found the how-to silent on running a grid campaign; new "On the grid" section
