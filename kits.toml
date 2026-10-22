@@ -98,7 +98,7 @@ command = ["${PYTHON}", "-m", "mu2efastsim.endpoints.kit"]
 env_passthrough = ["SSH_AUTH_SOCK"]
 set = { PYTHONPATH = "${M2FS_CODE}/core:${M2FS_CODE}/crv:${M2FS_CODE}/tracker", FASTSIMKIT_ENDPOINT = "uva", FASTSIMKIT_STATE_DIR = "${DATA_ROOT}/fastsimkit", FASTSIMKIT_MAX_SU_PER_JOB = "200" }
 study_keys = {}
-fixed_keys = { task = "string", events = "number", seed = "number", rows = "number", sipms = "number", shards = "number", files_per_job = "number", shard_offset = "number", max_events = "number", wall_minutes = "number" }
+fixed_keys = { task = "string", events = "number", seed = "number", rows = "number", sipms = "number", shards = "number", files_per_job = "number", shard_offset = "number", max_events = "number", wall_minutes = "number", gen_set = "number" }
 accepts_lists = false
 check = true
 executors = ["grid"]

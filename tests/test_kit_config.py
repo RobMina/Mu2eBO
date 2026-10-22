@@ -126,7 +126,7 @@ class TestRepoRegistry(unittest.TestCase):
         self.assertEqual(set(cfg.fixed_keys),
                          {"task", "events", "seed", "rows", "sipms", "shards",
                           "files_per_job", "shard_offset", "max_events",
-                          "wall_minutes"})
+                          "wall_minutes", "gen_set"})
         decl = kit_registry.KITS["fastsimkit"]
         self.assertTrue(decl.step_kit)
         self.assertTrue(decl.check_kit)
