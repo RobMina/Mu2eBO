@@ -124,7 +124,9 @@ class TestRepoRegistry(unittest.TestCase):
         self.assertEqual(cfg.executors, ("grid",))
         self.assertIn("SSH_AUTH_SOCK", cfg.env_passthrough)
         self.assertEqual(set(cfg.fixed_keys),
-                         {"task", "events", "seed", "rows", "sipms"})
+                         {"task", "events", "seed", "rows", "sipms", "shards",
+                          "files_per_job", "shard_offset", "max_events",
+                          "wall_minutes"})
         decl = kit_registry.KITS["fastsimkit"]
         self.assertTrue(decl.step_kit)
         self.assertTrue(decl.check_kit)

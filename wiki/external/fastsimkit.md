@@ -3,8 +3,8 @@ type: external
 title: fastsimkit — the Mu2e JAX fast chain as a native kit
 description: 'Native contract kit (kits.toml) for the JAX CRV fast sim/reco of RobMina/mu2e-fastsim on a compute endpoint, one Slurm job per point; UVA Rivanna/Afton over ssh today; smoke task reco_bench passes end to end (2026-10-21); kit host must be on the UVA network'
 status: active
-status_note: 'three tasks pass live (reco_bench, response_bench, v4_response); veto objectives in progress'
-timestamp: '2026-10-21'
+status_note: 'four tasks pass live (reco_bench, response_bench, v4_response, chain_point); veto objectives in progress'
+timestamp: '2026-10-22'
 ---
 
 # fastsimkit — the Mu2e JAX fast chain as a native kit
@@ -32,7 +32,8 @@ on one GPU.
   outputs; `${DATA_ROOT}/fastsimkit`), `FASTSIMKIT_MAX_SU_PER_JOB` (the kit
   refuses a job whose estimated charge is larger; UVA measured ~60 SU per
   A100-hour, ~140 per B200-hour), `FASTSIMKIT_SIF` (image path on the site).
-- **Params:** step `fixed` keys `task`, `events`, `seed`, `rows`, `sipms`;
+- **Params:** step `fixed` keys `task`, `events`, `seed`, `rows`, `sipms`,
+  `shards`, `files_per_job`, `shard_offset`, `max_events`, `wall_minutes`;
   `describe` lists tasks and metrics. Tasks:
   - `reco_bench` (`events`, `seed`): synthetic CRV reco chain throughput;
     `events_per_s`, `first_call_s`, `events`.
@@ -40,6 +41,18 @@ on one GPU.
     with the real CRVConditions table 3200_0 and photon map;
     `photon_rows_per_s`, `photons_per_row`, `sipms_per_s`,
     `charges_per_photon`.
+  - `chain_point` (`shards`, `files_per_job`, `shard_offset`, `max_events`,
+    `seed`, `wall_minutes`): one point of the whole fast chain as `shards`
+    one-GPU Slurm jobs (whole GPU nodes queue for hours, single GPUs start in
+    minutes). Each job's Mu2e-internal inputs (tier-1b library, CSVs, GDML,
+    its gen tables) are streamed from `FASTSIMKIT_FNAL_HOST` through the kit
+    host into the job's memory (md5-checked, never on disk); the kit refuses
+    results without each job's deletion record. Metrics: `accepted_events`,
+    `generated_events`, `accepted_per_gpu_hour` (charged and `_chain`),
+    `accepted_per_est_su`, `input_wait_s_mean`, `campaign_s`,
+    `clusters_per_generated_{EX,T1,T2,M}`. At most 2 file streams per job and
+    6 overall: one ssh connection per host carries 10 channels (sshd
+    MaxSessions), and 4 streams x 2 jobs failed (point kitcp02).
   - `v4_response` (`events`, `seed`): V4 photon and SiPM checks (JAX vs
     numpy ports, real tables, synthetic muon CrvSteps); `v4_photons_pass`,
     `v4_sipm_pass` (1/0), `v4_*_max_abs_pe_rel`, `v4_*_jax_s`.
@@ -92,6 +105,10 @@ on one GPU.
   `mu2e/wiki/sim/uva-hpc-endpoint.md` (RobMina/ai-config-mu2e)
 
 ## Open questions / TODO
+- Run a `chain_point` study through `graph.run` (only driven from the kit's
+  Python class so far: kitcp01, kitcp03 on UVA, 2 jobs each, 16-18 SU).
+- Input streaming dominates a short `chain_point` job (the FNAL leg runs at
+  ~2.4 MB/s, the library is 1 GB): use many files per job.
 - Veto inefficiency and deadtime objectives (needs the full-detector
   configuration of the fast chain).
 - Unattended use from FNAL: Globus Compute endpoint at UVA, or a relay.
