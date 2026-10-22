@@ -132,6 +132,20 @@ class TestRepoRegistry(unittest.TestCase):
         self.assertTrue(decl.check_kit)
         self.assertFalse(decl.requires_kerberos)
 
+    def test_fastsimkit_eaf_entry(self):
+        cfg = kc.load_kit_configs()["fastsimkit_eaf"]
+        self.assertEqual(cfg.set_env["FASTSIMKIT_ENDPOINT"], "eaf")
+        self.assertIn("EAF_TOKEN_FILE", cfg.env_passthrough)
+        self.assertTrue({"shards", "max_events"} <= set(cfg.fixed_keys))
+        self.assertTrue(kit_registry.KITS["fastsimkit_eaf"].step_kit)
+
+    def test_fastsim_eaf_regression_study_loads(self):
+        path = (Path(__file__).parent / "fixtures" / "engine_studies"
+                / "fastsim_eaf_regression.json")
+        s = st.load_study_file(path)
+        self.assertEqual(kit_registry.kits_of(s), {"fastsimkit_eaf"})
+        self.assertEqual([x.fixed["task"] for x in s.steps], ["regression", "chain"])
+
     def test_fastsim_chain_point_study_loads(self):
         path = (Path(__file__).parent / "fixtures" / "engine_studies"
                 / "fastsim_chain_point.json")

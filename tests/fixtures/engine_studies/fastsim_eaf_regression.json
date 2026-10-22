@@ -1,0 +1,25 @@
+{
+ "schema": 2,
+ "name": "fastsim_eaf_regression",
+ "note": "Validation study for fastsimkit on Fermilab EAF, not a measurement of physics: zero knobs, two steps on one A100 MIG slice. regress runs the regression set on the endpoint (unit tests, V4 photons and SiPM, reco reproducibility, the chain on one shard); chain runs the whole fast chain on two held-out G4 shards against the stock chain. Run with graph.run from a FNAL host with EAF_TOKEN_FILE set.",
+ "knobs": [],
+ "derive": {"consts": {}, "exprs": {}, "profiles": {}},
+ "geom": null,
+ "kits": {},
+ "preflight": null,
+ "evaluate": [
+  {"step": "regress", "kit": "fastsimkit_eaf", "entry": null, "files": [], "files_from": [], "params": {}, "params_from": {}, "fixed": {"task": "regression", "events": 5000, "seed": 20261021}},
+  {"step": "chain", "kit": "fastsimkit_eaf", "entry": null, "files": [], "files_from": [], "params": {}, "params_from": {}, "fixed": {"task": "chain", "shards": 2, "max_events": 50000, "seed": 20261021}}
+ ],
+ "objectives": [
+  {"name": "events_with_steps_per_s", "metric": "chain.events_with_steps_per_s", "direction": "max", "transform": "none", "noise": 0.05, "fmt": "{:.1f}"}
+ ],
+ "constraints": [],
+ "extra_metrics": [
+  {"name": "regression_pass", "metric": "regress.regression_pass", "fmt": "{:.0f}"},
+  {"name": "max_abs_cluster_rate_rel", "metric": "chain.max_abs_cluster_rate_rel", "fmt": "{:.4f}"},
+  {"name": "clusters_per_generated_EX", "metric": "chain.clusters_per_generated_EX", "fmt": "{:.5f}"}
+ ],
+ "extra_columns": [],
+ "leaderboard": {"file": "leaderboards/leaderboard_fastsim_eaf_regression.tsv", "layout": "v2", "context": []}
+}

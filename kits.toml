@@ -105,3 +105,23 @@ executors = ["grid"]
 launch_stagger_s = 0
 poll_s = [30.0, 300.0]
 timeouts = { start = 60, submit = 900, status = 120, results = 1800, check = 30, describe = 30, cancel = 300 }
+
+# The same kit on Fermilab EAF (the user's JupyterHub server on an A100 MIG slice,
+# mu2efastsim.endpoints.eaf): run from a FNAL host (EAF answers only the FNAL
+# network) with EAF_TOKEN_FILE naming a mode-600 hub API token. Inputs are read in
+# place from /exp, so the tasks on Mu2e-internal inputs (chain, regression) run
+# only here. One slice per user: points queue on the endpoint and run one after
+# the other; the server stops itself EAF_LINGER_S after the last result. A submit
+# can take minutes (the server starts, trying slices from 4g.40gb down).
+[fastsimkit_eaf]
+command = ["${PYTHON}", "-m", "mu2efastsim.endpoints.kit"]
+env_passthrough = ["EAF_TOKEN_FILE"]
+set = { PYTHONPATH = "${M2FS_CODE}/core:${M2FS_CODE}/crv:${M2FS_CODE}/tracker", FASTSIMKIT_ENDPOINT = "eaf", FASTSIMKIT_STATE_DIR = "${DATA_ROOT}/fastsimkit_eaf", EAF_LINGER_S = "300" }
+study_keys = {}
+fixed_keys = { task = "string", events = "number", seed = "number", rows = "number", sipms = "number", shards = "number", max_events = "number" }
+accepts_lists = false
+check = true
+executors = ["grid"]
+launch_stagger_s = 0
+poll_s = [30.0, 300.0]
+timeouts = { start = 60, submit = 1800, status = 120, results = 900, check = 30, describe = 30, cancel = 120 }

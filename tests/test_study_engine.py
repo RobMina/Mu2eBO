@@ -162,10 +162,11 @@ class TestLoadedStudies(TmpCase):
         # foilspf_nominal and ptg4bl (G4beamline through beamkit), and
         # ENGINE_STUDIES holds branin, prodtools_smoke, the C2b local
         # acceptance fixture foilspfbpz_local and the fastsimkit studies
-        # fastsim_bench, fastsim_chain_point and fastsim_chain_point_crygen.
+        # fastsim_bench, fastsim_chain_point, fastsim_chain_point_crygen and fastsim_eaf_regression.
         self.assertEqual(r.stdout.strip().splitlines()[-1],
                          "['branin', 'ce_chain', 'fastsim_bench', "
                          "'fastsim_chain_point', 'fastsim_chain_point_crygen', "
+                         "'fastsim_eaf_regression', "
                          "'foilsflash_ax', 'foilspf_nominal', "
                          "'foilspfbpz_ax', 'foilspfbpz_local', "
                          "'prodtools_smoke', 'ptg4bl']")

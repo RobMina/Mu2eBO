@@ -115,6 +115,38 @@ on one GPU.
   that need the CRVConditions tables fetch them per job into node tmpfs and
   delete them (copy-compute-delete).
 
+## On Fermilab EAF (`fastsimkit_eaf`, 2026-10-22)
+- **Entry `[fastsimkit_eaf]`** in `kits.toml`: the same kit with
+  `FASTSIMKIT_ENDPOINT=eaf` (`mu2efastsim.endpoints.eaf`, mu2e-fastsim-core
+  `90bc604`). The kit host must be on the FNAL network (EAF answers nothing
+  else) with `EAF_TOKEN_FILE` naming a mode-600 JupyterHub API token. Jobs
+  run in the user's EAF server on one A100 MIG slice (1g.10gb, 2g.20gb or
+  4g.40gb), reading inputs in place from /exp.
+- **Tasks only EAF runs:** `chain` (the whole fast chain on held-out G4
+  shards against the stock chain) and `regression` (unit tests, V4 photons
+  and SiPM, reco reproducibility, the chain on one shard; `regression_pass`
+  1/0). They read Mu2e-internal inputs in place, so the kit refuses them on
+  an endpoint that does not mount FNAL storage (UVA).
+- **One slice per user:** points queue on the endpoint and run in order;
+  `submit` can take minutes while the server starts (timeout 1800 s), and
+  concurrent submits are serialized (two simultaneous server starts got HTTP
+  500 from the hub). The server stops itself `EAF_LINGER_S` (300 s here)
+  after the last result.
+- **Study `fastsim_eaf_regression`** (tests/fixtures/engine_studies; zero
+  knobs; steps `regress` and `chain`). `graph.run --study
+  fastsim_eaf_regression --config eafreg02 --campaign eafreg` from
+  mu2egpvm02 (ana 2.8.0, data root under the user's crv_fastsim area):
+  both steps on 1g.10gb, launched 46 s apart and run back to back,
+  completed in 18 min; one row, `events_with_steps_per_s` 28.4,
+  `max_abs_cluster_rate_rel` 0.027 against the stock chain,
+  `regression_pass` 0, from two parts: one SiPM time-quantile cell (the
+  known noise of that check on a small sample) and one unit test,
+  `crv/tests/test_oneapi_batch.py::test_chain_digis_bucketed_default_equals_unbucketed`
+  ("volt": bucketed and unbucketed waveform synthesis differ on the EAF GPU;
+  it passes on CPU). A run the evening before, with the same code otherwise,
+  gave `regression_pass` 1. A first point (eafreg01, before the
+  serialization) failed with the HTTP 500 above.
+
 ## Cross-links
 - Contract: [contract-engine](/drivers/contract-engine.md) ("toykit", the
   reference native kit)
