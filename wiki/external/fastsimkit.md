@@ -86,6 +86,13 @@ on one GPU.
   64.1). The first try (fsb01) failed in 22 s: Mu2eBO sends every `number`
   param as a float, and `--max-events 200000.0` is not an int; the kit now
   renders integral floats as ints (mu2e-fastsim-core `51c91a2`).
+- **`chain_point` through `graph.run` (2026-10-22):** study
+  `tests/fixtures/engine_studies/fastsim_chain_point.json` (4 sub-jobs x 20
+  gen files), config fcp01, UVA jobs 21773784-87: one leaderboard row,
+  **177,345 accepted events for 66 SU (2,690 per SU, MAM)**, 0.67 M accepted
+  per A100-hour of chain time, input streaming 76 % of the charged time
+  (485-735 s per sub-job against ~240 s of chain). The 20 gen shards were
+  reused with different seeds: more shards are needed for production points.
 - **Interpreter on a laptop:** a single-point `graph.run` needs only `mcp`
   2.x and `langgraph` (the picker's torch/botorch are `closed_loop` only).
   The conda env used had them added by pip; with `mcp` 2.3 the suite still
@@ -105,8 +112,6 @@ on one GPU.
   `mu2e/wiki/sim/uva-hpc-endpoint.md` (RobMina/ai-config-mu2e)
 
 ## Open questions / TODO
-- Run a `chain_point` study through `graph.run` (only driven from the kit's
-  Python class so far: kitcp01, kitcp03 on UVA, 2 jobs each, 16-18 SU).
 - Input streaming dominates a short `chain_point` job (the FNAL leg runs at
   ~2.4 MB/s, the library is 1 GB): use many files per job.
 - Veto inefficiency and deadtime objectives (needs the full-detector

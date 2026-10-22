@@ -1,0 +1,28 @@
+{
+ "schema": 2,
+ "name": "fastsim_chain_point",
+ "note": "Throughput test of fastsimkit chain_point, not a measurement of physics: zero knobs, one step on the UVA endpoint running the whole fast CRV chain on 4 one-GPU Slurm jobs x 20 g4ref_v1 gen files each (the 20 shards are reused with different seeds), Mu2e-internal inputs streamed from the FNAL host into each job.",
+ "knobs": [],
+ "derive": {"consts": {}, "exprs": {}, "profiles": {}},
+ "geom": null,
+ "kits": {},
+ "preflight": null,
+ "evaluate": [
+  {"step": "chain", "kit": "fastsimkit", "entry": null, "files": [], "files_from": [], "params": {}, "params_from": {},
+   "fixed": {"task": "chain_point", "shards": 4, "files_per_job": 20, "shard_offset": 0, "max_events": 0, "seed": 20261022, "wall_minutes": 45}}
+ ],
+ "objectives": [
+  {"name": "accepted_per_est_su", "metric": "chain.accepted_per_est_su", "direction": "max", "transform": "none", "noise": 0.05, "fmt": "{:.1f}"}
+ ],
+ "constraints": [],
+ "extra_metrics": [
+  {"name": "accepted_events", "metric": "chain.accepted_events", "fmt": "{:.0f}"},
+  {"name": "accepted_per_gpu_hour", "metric": "chain.accepted_per_gpu_hour", "fmt": "{:.0f}"},
+  {"name": "accepted_per_gpu_hour_chain", "metric": "chain.accepted_per_gpu_hour_chain", "fmt": "{:.0f}"},
+  {"name": "est_su", "metric": "chain.est_su", "fmt": "{:.1f}"},
+  {"name": "input_wait_s_mean", "metric": "chain.input_wait_s_mean", "fmt": "{:.0f}"},
+  {"name": "campaign_s", "metric": "chain.campaign_s", "fmt": "{:.0f}"}
+ ],
+ "extra_columns": [],
+ "leaderboard": {"file": "leaderboards/leaderboard_fastsim_chain_point.tsv", "layout": "v2", "context": []}
+}

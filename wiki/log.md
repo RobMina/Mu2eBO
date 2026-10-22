@@ -6,6 +6,7 @@ heading at the TOP (create it if absent). One bullet per change:
 superseded, linted.
 
 ## 2026-10-22
+- **updated** [fastsimkit](/external/fastsimkit.md): `chain_point` through `graph.run` (fcp01: 177,345 accepted, 66 SU); study fixture `fastsim_chain_point`
 - **updated** [fastsimkit](/external/fastsimkit.md): `chain_point` task (one point as N one-GPU jobs, inputs streamed in), its params in kits.toml, longer submit/results/cancel timeouts
 
 ## 2026-10-21
