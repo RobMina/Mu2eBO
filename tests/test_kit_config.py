@@ -139,6 +139,14 @@ class TestRepoRegistry(unittest.TestCase):
         self.assertEqual(kit_registry.kits_of(s), {"fastsimkit"})
         self.assertEqual(s.steps[0].fixed["task"], "chain_point")
 
+    def test_fastsim_chain_point_crygen_study_loads(self):
+        path = (Path(__file__).parent / "fixtures" / "engine_studies"
+                / "fastsim_chain_point_crygen.json")
+        s = st.load_study_file(path)
+        self.assertEqual(kit_registry.kits_of(s), {"fastsimkit"})
+        self.assertEqual(s.steps[0].fixed["task"], "chain_point")
+        self.assertEqual(s.steps[0].fixed["gen_set"], 1)
+
     def test_fastsim_bench_study_loads(self):
         path = (Path(__file__).parent / "fixtures" / "engine_studies"
                 / "fastsim_bench.json")

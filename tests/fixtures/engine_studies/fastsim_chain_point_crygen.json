@@ -1,0 +1,89 @@
+{
+ "schema": 2,
+ "name": "fastsim_chain_point_crygen",
+ "note": "Throughput test of fastsimkit chain_point on the crygen_v1 gen set (gen_set 1, 94 x 1 M CRY-only primaries, no G4 reference), not a physics measurement: zero knobs, 4 one-GPU UVA jobs x 6 distinct gen files (24 M generated, no file reused), Mu2e-internal inputs streamed from the FNAL host into each job; the job-side input wait is sized from the streamed bytes (mu2e-fastsim-core 6692a00).",
+ "knobs": [],
+ "derive": {
+  "consts": {},
+  "exprs": {},
+  "profiles": {}
+ },
+ "geom": null,
+ "kits": {},
+ "preflight": null,
+ "evaluate": [
+  {
+   "step": "chain",
+   "kit": "fastsimkit",
+   "entry": null,
+   "files": [],
+   "files_from": [],
+   "params": {},
+   "params_from": {},
+   "fixed": {
+    "task": "chain_point",
+    "shards": 4,
+    "files_per_job": 6,
+    "shard_offset": 20,
+    "max_events": 0,
+    "seed": 20261023,
+    "wall_minutes": 60,
+    "gen_set": 1
+   }
+  }
+ ],
+ "objectives": [
+  {
+   "name": "accepted_per_est_su",
+   "metric": "chain.accepted_per_est_su",
+   "direction": "max",
+   "transform": "none",
+   "noise": 0.05,
+   "fmt": "{:.1f}"
+  }
+ ],
+ "constraints": [],
+ "extra_metrics": [
+  {
+   "name": "accepted_events",
+   "metric": "chain.accepted_events",
+   "fmt": "{:.0f}"
+  },
+  {
+   "name": "accepted_per_gpu_hour",
+   "metric": "chain.accepted_per_gpu_hour",
+   "fmt": "{:.0f}"
+  },
+  {
+   "name": "accepted_per_gpu_hour_chain",
+   "metric": "chain.accepted_per_gpu_hour_chain",
+   "fmt": "{:.0f}"
+  },
+  {
+   "name": "est_su",
+   "metric": "chain.est_su",
+   "fmt": "{:.1f}"
+  },
+  {
+   "name": "input_wait_s_mean",
+   "metric": "chain.input_wait_s_mean",
+   "fmt": "{:.0f}"
+  },
+  {
+   "name": "campaign_s",
+   "metric": "chain.campaign_s",
+   "fmt": "{:.0f}"
+  },
+  {
+   "name": "generated_events",
+   "metric": "chain.generated_events",
+   "fmt": "{:.0f}"
+  }
+ ],
+ "extra_columns": [],
+ "leaderboard": {
+  "file": "leaderboards/leaderboard_fastsim_chain_point_crygen.tsv",
+  "layout": "v2",
+  "context": []
+ }
+}
