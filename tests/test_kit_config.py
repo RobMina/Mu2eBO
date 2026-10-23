@@ -163,6 +163,15 @@ class TestRepoRegistry(unittest.TestCase):
         self.assertEqual(s.steps[0].fixed["task"], "veto_c4")
         self.assertEqual([o.name for o in s.objectives], ["inefficiency", "deadtime"])
 
+    def test_fastsim_crv_response_study_loads(self):
+        path = (Path(__file__).parent / "fixtures" / "engine_studies"
+                / "fastsim_crv_response_prop.json")
+        s = st.load_study_file(path)
+        self.assertEqual(kit_registry.kits_of(s), {"fastsimkit_eaf"})
+        self.assertEqual(s.steps[0].fixed["task"], "crv_response")
+        self.assertEqual([k.name for k in s.knobs],
+                         ["speed_EX", "atten_EX", "atten_T1", "speed_T2", "atten_T2"])
+
     def test_fastsim_beam_point_study_loads(self):
         path = (Path(__file__).parent / "fixtures" / "engine_studies"
                 / "fastsim_beam_point.json")

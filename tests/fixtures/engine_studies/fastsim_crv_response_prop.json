@@ -1,0 +1,35 @@
+{
+ "schema": 2,
+ "name": "fastsim_crv_response_prop",
+ "note": "First CRV response-tuning study (fastsimkit task crv_response on Fermilab EAF): the light-propagation knobs of Offline PRs crv-fiber-speed / crv-fiber-atten in the fast chain, as ratios to the v6_0 lookup tables, per sector (EX speed and attenuation, T1 attenuation, T2 speed and attenuation). Each point replays the five V-R5 MDC2025as CrvStep files (112,304 events with CRV steps; fast chain matched to the full chain for these knobs, crv fiberprop_v1) with the out-of-time background model and the P4 module time calibration, and scores the size-free CRV response objective against run 125026 (crvreco-005-001). Objective: the mean of the 32 per-term distances, to minimise. T1 speed is not a knob: T1 is read out at one end, so its timing only fixes speed with an absolute time reference. Speed and attenuation are correlated through time walk, so they are tuned together.",
+ "knobs": [
+  {"name": "speed_EX", "type": "real", "min": 0.9, "max": 1.2, "unit": "ratio", "fmt": "{:.4f}"},
+  {"name": "atten_EX", "type": "real", "min": 0.5, "max": 1.5, "unit": "ratio", "fmt": "{:.4f}"},
+  {"name": "atten_T1", "type": "real", "min": 0.4, "max": 1.2, "unit": "ratio", "fmt": "{:.4f}"},
+  {"name": "speed_T2", "type": "real", "min": 0.9, "max": 1.2, "unit": "ratio", "fmt": "{:.4f}"},
+  {"name": "atten_T2", "type": "real", "min": 0.5, "max": 1.5, "unit": "ratio", "fmt": "{:.4f}"}
+ ],
+ "derive": {"consts": {}, "exprs": {}, "profiles": {}},
+ "geom": null,
+ "kits": {},
+ "preflight": null,
+ "evaluate": [
+  {"step": "resp", "kit": "fastsimkit_eaf", "entry": null, "files": [], "files_from": [], "params": {"speed_EX": "speed_EX", "atten_EX": "atten_EX", "atten_T1": "atten_T1", "speed_T2": "speed_T2", "atten_T2": "atten_T2"}, "params_from": {}, "fixed": {"task": "crv_response", "period": "P4", "tables": "vr5", "events": 0, "background": 1, "seed": 20261023}}
+ ],
+ "objectives": [
+  {"name": "crv_objective", "metric": "resp.objective", "direction": "min", "transform": "none", "noise": 0.7, "fmt": "{:.3f}"}
+ ],
+ "constraints": [],
+ "extra_metrics": [
+  {"name": "objective_sigma", "metric": "resp.objective_sigma", "fmt": "{:.3f}"},
+  {"name": "dt_T2", "metric": "resp.term_dt_cluster_T2", "fmt": "{:.2f}"},
+  {"name": "tdiff_EX", "metric": "resp.term_tdiff_EX", "fmt": "{:.2f}"},
+  {"name": "tdiff_T2", "metric": "resp.term_tdiff_T2", "fmt": "{:.2f}"},
+  {"name": "asym_EX", "metric": "resp.term_asym_EX", "fmt": "{:.2f}"},
+  {"name": "asym_T2", "metric": "resp.term_asym_T2", "fmt": "{:.2f}"},
+  {"name": "pe_along_T1", "metric": "resp.term_pe_along_T1", "fmt": "{:.2f}"},
+  {"name": "pe_layer_T1", "metric": "resp.term_pe_layer_T1", "fmt": "{:.2f}"}
+ ],
+ "extra_columns": [],
+ "leaderboard": {"file": "leaderboards/leaderboard_fastsim_crv_response_prop.tsv", "layout": "v2", "context": []}
+}
