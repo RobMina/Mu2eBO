@@ -3,8 +3,8 @@ type: external
 title: fastsimkit — the Mu2e JAX fast chain as a native kit
 description: 'Native contract kit (kits.toml) for the JAX CRV fast sim/reco of RobMina/mu2e-fastsim on a compute endpoint, one Slurm job per point; UVA Rivanna/Afton over ssh today; smoke task reco_bench passes end to end (2026-10-21); kit host must be on the UVA network'
 status: active
-status_note: 'four tasks pass live (reco_bench, response_bench, v4_response, chain_point); veto objectives in progress'
-timestamp: '2026-10-22'
+status_note: 'tasks live: reco_bench, response_bench, v4_response, chain_point; EAF: chain, regression, veto_c4, beam_point'
+timestamp: '2026-10-23'
 ---
 
 # fastsimkit — the Mu2e JAX fast chain as a native kit
@@ -157,6 +157,17 @@ on one GPU.
   `AUTORESEARCH_SURROKIT` at pin `26929f7`): 6/6 ok. Inefficiency 0.752 (67 ns), 0.689 (93 ns), 0.646 above ~150 ns;
   `min_pe` 0-60 is inert (coincidences >= 266 PE). Single objective by design until the deadtime objective exists.
 - The `fastsimkit-eaf` branch was folded into `fastsimkit` (2026-10-23); both kit entries live here.
+
+## Beam stage on EAF (`beam_point`, 2026-10-23)
+- Task `beam_point` (mu2e-fastsim-core `6ad9f3f` registers it from the umbrella's `beam/`, umbrella `96ad212`): muon
+  transport from the DS entrance through the DS field map and a stopping-target geometry (`geom`: `nominal`, a name
+  under `beam/geom`, or an absolute FNAL path) for `muons` MDC2025ac MuBeamCat muons; metrics `stop_frac`
+  (+ `_err`, `_mu_minus`), stop profile summaries, `muons_per_s_warm`. One A100 slice; `fastsimkit_eaf` only.
+  Validated against stock Geant4 on the same muons: 0.3583 vs 0.3592 (nominal), 0.6659 vs 0.6693 (49 foils).
+- Study `fastsim_beam_point` (zero knobs; steps `nominal`, `move`). `graph.run --config beampt01 --campaign beampt`
+  from mu2egpvm03: both completed, one row (`stop_frac` 0.6665, `stop_frac_nominal` 0.3583, 20,927 muons/s warm),
+  ~14 min submit to row including the server start.
+- Record: ai-config wiki `mu2e/wiki/sim/beam-muon-transport-fastsim.md`.
 
 ## Cross-links
 - Contract: [contract-engine](/drivers/contract-engine.md) ("toykit", the
