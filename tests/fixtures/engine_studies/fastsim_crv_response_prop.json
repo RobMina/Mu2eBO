@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "name": "fastsim_crv_response_prop",
- "note": "First CRV response-tuning study (fastsimkit task crv_response on Fermilab EAF): the light-propagation knobs of Offline PRs crv-fiber-speed / crv-fiber-atten in the fast chain, as ratios to the v6_0 lookup tables, per sector (EX speed and attenuation, T1 attenuation, T2 speed and attenuation). Each point replays the five V-R5 MDC2025as CrvStep files (112,304 events with CRV steps; fast chain matched to the full chain for these knobs, crv fiberprop_v1) with the out-of-time background model and the P4 module time calibration, and scores the size-free CRV response objective against run 125026 (crvreco-005-001). Objective: the mean of the 32 per-term distances, to minimise. T1 speed is not a knob: T1 is read out at one end, so its timing only fixes speed with an absolute time reference. Speed and attenuation are correlated through time walk, so they are tuned together.",
+ "note": "First CRV response-tuning study (fastsimkit task crv_response on UVA: one A100 job per point, the inputs streamed from the FNAL host through the kit host, which must be on the UVA network and reach the FNAL host by ssh): the light-propagation knobs of Offline PRs crv-fiber-speed / crv-fiber-atten in the fast chain, as ratios to the v6_0 lookup tables, per sector (EX speed and attenuation, T1 attenuation, T2 speed and attenuation). Each point replays the five V-R5 MDC2025as CrvStep files (112,304 events with CRV steps; fast chain matched to the full chain for these knobs, crv fiberprop_v1) with the out-of-time background model and the P4 module time calibration, and scores the size-free CRV response objective against run 125026 (crvreco-005-001). Objective: the mean of the 32 per-term distances, to minimise. T1 speed is not a knob: T1 is read out at one end, so its timing only fixes speed with an absolute time reference. Speed and attenuation are correlated through time walk, so they are tuned together.",
  "knobs": [
   {"name": "speed_EX", "type": "real", "min": 0.9, "max": 1.2, "unit": "ratio", "fmt": "{:.4f}"},
   {"name": "atten_EX", "type": "real", "min": 0.5, "max": 1.5, "unit": "ratio", "fmt": "{:.4f}"},
@@ -14,7 +14,7 @@
  "kits": {},
  "preflight": null,
  "evaluate": [
-  {"step": "resp", "kit": "fastsimkit_eaf", "entry": null, "files": [], "files_from": [], "params": {"speed_EX": "speed_EX", "atten_EX": "atten_EX", "atten_T1": "atten_T1", "speed_T2": "speed_T2", "atten_T2": "atten_T2"}, "params_from": {}, "fixed": {"task": "crv_response", "period": "P4", "tables": "vr5", "events": 0, "background": 1, "seed": 20261023}}
+  {"step": "resp", "kit": "fastsimkit", "entry": null, "files": [], "files_from": [], "params": {"speed_EX": "speed_EX", "atten_EX": "atten_EX", "atten_T1": "atten_T1", "speed_T2": "speed_T2", "atten_T2": "atten_T2"}, "params_from": {}, "fixed": {"task": "crv_response", "period": "P4", "tables": "vr5", "events": 0, "background": 1, "seed": 20261023}}
  ],
  "objectives": [
   {"name": "crv_objective", "metric": "resp.objective", "direction": "min", "transform": "none", "noise": 0.7, "fmt": "{:.3f}"}

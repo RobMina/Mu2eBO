@@ -95,10 +95,10 @@ timeouts = { start = 120, get_server_info = 60, run_beamline = 900, beamline_sta
 # must stay up until the point ends; submit clones the code on UVA (minutes).
 [fastsimkit]
 command = ["${PYTHON}", "-m", "mu2efastsim.endpoints.kit"]
-env_passthrough = ["SSH_AUTH_SOCK"]
+env_passthrough = ["SSH_AUTH_SOCK", "FASTSIMKIT_CRV_BRANCH"]
 set = { PYTHONPATH = "${M2FS_CODE}/core:${M2FS_CODE}/crv:${M2FS_CODE}/tracker:${M2FS_CODE}/beam", FASTSIMKIT_ENDPOINT = "uva", FASTSIMKIT_STATE_DIR = "${DATA_ROOT}/fastsimkit", FASTSIMKIT_MAX_SU_PER_JOB = "200" }
 study_keys = {}
-fixed_keys = { task = "string", events = "number", seed = "number", rows = "number", sipms = "number", shards = "number", files_per_job = "number", shard_offset = "number", max_events = "number", wall_minutes = "number", gen_set = "number", geom = "string", muons = "number", repeat = "number" }
+fixed_keys = { task = "string", events = "number", seed = "number", rows = "number", sipms = "number", shards = "number", files_per_job = "number", shard_offset = "number", max_events = "number", wall_minutes = "number", gen_set = "number", geom = "string", muons = "number", repeat = "number", period = "string", tables = "string", background = "number" }
 accepts_lists = false
 check = true
 executors = ["grid"]
