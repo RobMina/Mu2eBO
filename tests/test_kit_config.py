@@ -126,7 +126,8 @@ class TestRepoRegistry(unittest.TestCase):
         self.assertEqual(set(cfg.fixed_keys),
                          {"task", "events", "seed", "rows", "sipms", "shards",
                           "files_per_job", "shard_offset", "max_events",
-                          "wall_minutes", "gen_set"})
+                          "wall_minutes", "gen_set", "geom", "muons", "repeat"})
+        self.assertIn("/beam", cfg.set_env["PYTHONPATH"])     # beam_point (beamfastsim) on UVA
         decl = kit_registry.KITS["fastsimkit"]
         self.assertTrue(decl.step_kit)
         self.assertTrue(decl.check_kit)
