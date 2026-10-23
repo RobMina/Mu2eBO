@@ -116,9 +116,9 @@ timeouts = { start = 60, submit = 900, status = 120, results = 1800, check = 30,
 [fastsimkit_eaf]
 command = ["${PYTHON}", "-m", "mu2efastsim.endpoints.kit"]
 env_passthrough = ["EAF_TOKEN_FILE"]
-set = { PYTHONPATH = "${M2FS_CODE}/core:${M2FS_CODE}/crv:${M2FS_CODE}/tracker", FASTSIMKIT_ENDPOINT = "eaf", FASTSIMKIT_STATE_DIR = "${DATA_ROOT}/fastsimkit_eaf", EAF_LINGER_S = "300" }
+set = { PYTHONPATH = "${M2FS_CODE}/core:${M2FS_CODE}/crv:${M2FS_CODE}/tracker:${M2FS_CODE}/beam", FASTSIMKIT_ENDPOINT = "eaf", FASTSIMKIT_STATE_DIR = "${DATA_ROOT}/fastsimkit_eaf", EAF_LINGER_S = "300" }
 study_keys = {}
-fixed_keys = { task = "string", events = "number", seed = "number", rows = "number", sipms = "number", shards = "number", max_events = "number", selection = "string", dt_lo = "number", dt_hi = "number", min_pe = "number", min_layers = "number", gate_start_lo = "number", gate_end_hi = "number", pmin = "number", pmax = "number" }
+fixed_keys = { task = "string", events = "number", seed = "number", rows = "number", sipms = "number", shards = "number", max_events = "number", selection = "string", dt_lo = "number", dt_hi = "number", min_pe = "number", min_layers = "number", gate_start_lo = "number", gate_end_hi = "number", pmin = "number", pmax = "number", geom = "string", muons = "number", repeat = "number" }
 accepts_lists = false
 check = true
 executors = ["grid"]

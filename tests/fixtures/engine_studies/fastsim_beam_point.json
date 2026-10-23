@@ -1,0 +1,25 @@
+{
+ "schema": 2,
+ "name": "fastsim_beam_point",
+ "note": "Validation study for the fastsimkit task beam_point (umbrella mu2e-fastsim beam/, package beamfastsim) on Fermilab EAF, not an optimisation: zero knobs, two steps on one A100 MIG slice. Each step transports the 105,350 MDC2025ac DS-entrance muons (table made from MuBeamCat with the stock MuBeamResampler G4 reference) through the DS field map and a stopping-target geometry, and returns the stopping fraction and stop profile. nominal is geom_common (37 foils); move is beam/geom/move_extras12.txt (49 foils). Geant4 on the same muons gives 0.3592 and 0.6693. Run with graph.run from a FNAL host with EAF_TOKEN_FILE and M2FS_CODE set; needs mu2e-fastsim-core 6ad9f3f and umbrella 96ad212.",
+ "knobs": [],
+ "derive": {"consts": {}, "exprs": {}, "profiles": {}},
+ "geom": null,
+ "kits": {},
+ "preflight": null,
+ "evaluate": [
+  {"step": "nominal", "kit": "fastsimkit_eaf", "entry": null, "files": [], "files_from": [], "params": {}, "params_from": {}, "fixed": {"task": "beam_point", "geom": "nominal", "muons": 105350, "seed": 1, "repeat": 1}},
+  {"step": "move", "kit": "fastsimkit_eaf", "entry": null, "files": [], "files_from": [], "params": {}, "params_from": {}, "fixed": {"task": "beam_point", "geom": "move_extras12.txt", "muons": 105350, "seed": 1, "repeat": 1}}
+ ],
+ "objectives": [
+  {"name": "stop_frac", "metric": "move.stop_frac", "direction": "max", "transform": "none", "noise": 0.0015, "fmt": "{:.4f}"}
+ ],
+ "constraints": [],
+ "extra_metrics": [
+  {"name": "stop_frac_nominal", "metric": "nominal.stop_frac", "fmt": "{:.4f}"},
+  {"name": "muons_per_s_warm", "metric": "move.muons_per_s_warm", "fmt": "{:.0f}"},
+  {"name": "stop_r_mean", "metric": "move.stop_r_mean", "fmt": "{:.2f}"}
+ ],
+ "extra_columns": [],
+ "leaderboard": {"file": "leaderboards/leaderboard_fastsim_beam_point.tsv", "layout": "v2", "context": []}
+}
