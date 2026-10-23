@@ -5,6 +5,9 @@ heading at the TOP (create it if absent). One bullet per change:
 `<verb> <what changed> — <page>`; verbs: created, updated, merged,
 superseded, linted.
 
+
+## 2026-10-23
+- **updated** [fastsimkit](/external/fastsimkit.md): `veto_c4` task, study `fastsim_veto_c4_run1a`, closed_loop vc4a 6/6 on EAF; `fastsimkit-eaf` folded into `fastsimkit`
 ## 2026-10-22
 - **updated** [fastsimkit](/external/fastsimkit.md): `[fastsimkit_eaf]` kits.toml entry and study fixture `fastsim_eaf_regression` (Fermilab EAF endpoint, needs mu2e-fastsim-core 90bc604); `graph.run` eafreg02 from mu2egpvm02, one row
 - **updated** [fastsimkit](/external/fastsimkit.md): `chain_point` through `graph.run` (fcp01: 177,345 accepted, 66 SU); study fixture `fastsim_chain_point`

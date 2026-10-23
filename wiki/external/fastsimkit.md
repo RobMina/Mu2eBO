@@ -147,6 +147,17 @@ on one GPU.
   gave `regression_pass` 1. A first point (eafreg01, before the
   serialization) failed with the HTTP 500 above.
 
+## Veto tier C4 on EAF (`veto_c4`, 2026-10-23)
+- Task `veto_c4` (mu2e-fastsim-core `8a0f90c`; `crvfastsim.veto` in crv main `16102c3`): a CRV veto card from the
+  point's params (`selection`, `dt_lo`, `dt_hi`, `min_pe`, `min_layers`, `gate_start_lo`, `gate_end_hi`, `pmin`,
+  `pmax`) applied to a cached Run 1A selection (`run1a_dev`: S. Grant's `dev` cut set, 10,279 CE-like cosmic tracks);
+  metrics `inefficiency`, `vetoed_frac` (+ Jeffreys interval), counts. CPU only; `fastsimkit_eaf` only.
+- Study `fastsim_veto_c4_run1a` (knobs `dt_hi`, `min_pe`; objective inefficiency). `graph.closed_loop --study
+  fastsim_veto_c4_run1a --q 2 --max-evals 6 --picker qlnei --name-prefix vc4a` from mu2egpvm02 (needs
+  `AUTORESEARCH_SURROKIT` at pin `26929f7`): 6/6 ok. Inefficiency 0.752 (67 ns), 0.689 (93 ns), 0.646 above ~150 ns;
+  `min_pe` 0-60 is inert (coincidences >= 266 PE). Single objective by design until the deadtime objective exists.
+- The `fastsimkit-eaf` branch was folded into `fastsimkit` (2026-10-23); both kit entries live here.
+
 ## Cross-links
 - Contract: [contract-engine](/drivers/contract-engine.md) ("toykit", the
   reference native kit)
