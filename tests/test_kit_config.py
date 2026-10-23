@@ -146,6 +146,14 @@ class TestRepoRegistry(unittest.TestCase):
         self.assertEqual(kit_registry.kits_of(s), {"fastsimkit_eaf"})
         self.assertEqual([x.fixed["task"] for x in s.steps], ["regression", "chain"])
 
+    def test_fastsim_veto_c4_study_loads(self):
+        path = (Path(__file__).parent / "fixtures" / "engine_studies"
+                / "fastsim_veto_c4_run1a.json")
+        s = st.load_study_file(path)
+        self.assertEqual(kit_registry.kits_of(s), {"fastsimkit_eaf"})
+        self.assertEqual(s.steps[0].fixed["task"], "veto_c4")
+        self.assertEqual([k.name for k in s.knobs], ["dt_hi", "min_pe"])
+
     def test_fastsim_chain_point_study_loads(self):
         path = (Path(__file__).parent / "fixtures" / "engine_studies"
                 / "fastsim_chain_point.json")

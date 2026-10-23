@@ -1,0 +1,26 @@
+{
+ "schema": 2,
+ "name": "fastsim_veto_c4_run1a",
+ "note": "First veto-rule study (tier C4 of the CRV veto optimisation; fastsimkit task veto_c4 on Fermilab EAF): two knobs of the veto card (the upper edge of the track-coincidence time window and the coincidence PE threshold) applied to the cached Run 1A selection run1a_dev (S. Grant's dev cut set on nts.mu2e.CosmicSignalOnSpillTriggered.MDC2025-000, 10,279 CE-like cosmic tracks, 85-200 MeV/c). Objective: the veto inefficiency on these cosmics, to minimise. Not a physics optimisation: without the deadtime objective (signal + beam, not built yet) the optimum is the widest window and the lowest threshold; the study exercises the C4 tier end to end through Mu2eBO.",
+ "knobs": [
+  {"name": "dt_hi", "type": "real", "min": 50.0, "max": 300.0, "unit": "ns", "fmt": "{:.1f}"},
+  {"name": "min_pe", "type": "real", "min": 0.0, "max": 60.0, "unit": "PE", "fmt": "{:.1f}"}
+ ],
+ "derive": {"consts": {}, "exprs": {}, "profiles": {}},
+ "geom": null,
+ "kits": {},
+ "preflight": null,
+ "evaluate": [
+  {"step": "veto", "kit": "fastsimkit_eaf", "entry": null, "files": [], "files_from": [], "params": {"dt_hi": "dt_hi", "min_pe": "min_pe"}, "params_from": {}, "fixed": {"task": "veto_c4", "selection": "run1a_dev", "dt_lo": 0.0, "min_layers": 0, "gate_start_lo": 420.0, "gate_end_hi": 1700.0, "pmin": 85.0, "pmax": 200.0}}
+ ],
+ "objectives": [
+  {"name": "inefficiency", "metric": "veto.inefficiency", "direction": "min", "transform": "none", "noise": 0.005, "fmt": "{:.5f}"}
+ ],
+ "constraints": [],
+ "extra_metrics": [
+  {"name": "vetoed", "metric": "veto.vetoed", "fmt": "{:.0f}"},
+  {"name": "selected", "metric": "veto.selected", "fmt": "{:.0f}"}
+ ],
+ "extra_columns": [],
+ "leaderboard": {"file": "leaderboards/leaderboard_fastsim_veto_c4_run1a.tsv", "layout": "v2", "context": []}
+}
