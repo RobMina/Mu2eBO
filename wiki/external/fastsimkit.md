@@ -93,6 +93,18 @@ on one GPU.
   per A100-hour of chain time, input streaming 76 % of the charged time
   (485-735 s per sub-job against ~240 s of chain). The 20 gen shards were
   reused with different seeds: more shards are needed for production points.
+- **`chain_point` on crygen_v1 through `graph.run` (2026-10-23):** study
+  `tests/fixtures/engine_studies/fastsim_chain_point_crygen.json`
+  (`gen_set` 1: 94 x 1 M CRY-only gen tables; 4 sub-jobs x 6 distinct files,
+  wall 60 min), config fcg01, code from a clean clone of the public umbrella
+  `66bd1aa` (mu2e-fastsim-core `6692a00`), UVA jobs 21852275-78: one row in
+  `leaderboard_fastsim_chain_point_crygen.tsv`, **1,067,794 accepted events
+  of 24 M generated for 57 SU (MAM; ~18,700 per SU, 7x fcp01)**, 13-14 min
+  per sub-job, campaign 18 min, input wait 100-155 s. The job-side input
+  deadline now scales with the bytes the point streams (here 1,946 s; it was
+  a fixed 30 min, which 4 x 20 crygen files overran), and the kit's `check`
+  refuses a point whose input budget plus estimated chain time does not fit
+  in `wall_minutes`.
 - **Interpreter on a laptop:** a single-point `graph.run` needs only `mcp`
   2.x and `langgraph` (the picker's torch/botorch are `closed_loop` only).
   The conda env used had them added by pip; with `mcp` 2.3 the suite still
