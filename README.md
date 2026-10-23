@@ -26,14 +26,22 @@ run a point and a campaign, follow it, read the results.
   - `beamkit` — G4beamline jobs for `ptg4bl`.
 - **Native kits** (`kits.toml`):
   - `toykit` — the reference kit and the CI engine (`tests/toykit.py`);
-  - `fastsimkit` — the Mu2e JAX fast chain (CRV fast sim/reco) on a
-    compute endpoint, one job per point: UVA Rivanna/Afton over ssh + Slurm
-    today (server `mu2efastsim.endpoints.kit` in
-    [RobMina/mu2e-fastsim-core](https://github.com/RobMina/mu2e-fastsim-core)).
-    Status: three tasks pass end to end (`reco_bench`, `response_bench`,
-    `v4_response`; the last two use the Mu2e-internal tables
-    copy-compute-delete); the kit host must be on the UVA network. Smoke study:
-    `tests/fixtures/engine_studies/fastsim_bench.json`.
+  - `fastsimkit` and `fastsimkit_eaf` — the Mu2e JAX fast simulation on a
+    GPU endpoint, one job per point (server `mu2efastsim.endpoints.kit` in
+    [RobMina/mu2e-fastsim-core](https://github.com/RobMina/mu2e-fastsim-core);
+    the umbrella checkout is `$M2FS_CODE`). `fastsimkit` runs on UVA
+    Rivanna/Afton over ssh + Slurm (the kit host must be on the UVA network);
+    `fastsimkit_eaf` runs on a Fermilab EAF A100 MIG slice driven from a GPVM
+    with a hub token, one slice with a queue, and reads Mu2e-internal inputs in
+    place, so nothing leaves Fermilab. Tasks: CRV throughput and response checks
+    (`reco_bench`, `response_bench`, `v4_response`), the CRV fast chain
+    (`chain_point` on UVA; `chain`, `regression` on EAF), the CRV veto rule
+    (`veto_c4`, EAF) and the stopping-target muon beam (`beam_point`, EAF:
+    stopping fraction of a target geometry, a fast stand-in for the `mubeam`
+    stage). Studies in `tests/fixtures/engine_studies/`: `fastsim_bench`,
+    `fastsim_chain_point`, `fastsim_chain_point_crygen`,
+    `fastsim_eaf_regression`, `fastsim_veto_c4_run1a`, `fastsim_beam_point`.
+    Details: [wiki/external/fastsimkit.md](wiki/external/fastsimkit.md).
 - **Runners** — `graph.run` evaluates one point; `graph.closed_loop` runs a
   campaign (a pool of points, a picker per replacement); `graph.check_study`
   checks a study without submitting anything.

@@ -7,6 +7,9 @@ superseded, linted.
 
 
 ## 2026-10-23
+- **updated** [fast-sim-options-for-bo](/concepts/fast-sim-options-for-bo.md): status section — Option 1 built as a GPU field-map + foil transport (`beamfastsim`, task `beam_point`), validated vs Geant4 on the same muons; `elebeam_flash` named as the remaining GPU-EM candidate
+- **updated** README.md: `fastsimkit` and `fastsimkit_eaf` (endpoints, task families, the six fastsim studies)
+- **updated** [fastsimkit](/external/fastsimkit.md): `beam_point` task and the `fastsim_beam_point` graph.run on EAF (beampt01)
 - **updated** [fastsimkit](/external/fastsimkit.md): `veto_c4` task, study `fastsim_veto_c4_run1a`, closed_loop vc4a 6/6 on EAF; `fastsimkit-eaf` folded into `fastsimkit`
 ## 2026-10-22
 - **updated** [fastsimkit](/external/fastsimkit.md): `[fastsimkit_eaf]` kits.toml entry and study fixture `fastsim_eaf_regression` (Fermilab EAF endpoint, needs mu2e-fastsim-core 90bc604); `graph.run` eafreg02 from mu2egpvm02, one row

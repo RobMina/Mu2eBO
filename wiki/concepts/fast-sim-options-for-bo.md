@@ -7,6 +7,7 @@ description: the GP IS the fast sim at 6D/scalar objectives; diffusion surrogate
   only at ~O(100D)
 status: active
 timestamp: '2026-07-08'
+updated_note: '2026-10-23: Option 1 built as a field-map + foil transport on GPU (beamfastsim, fastsimkit task beam_point), validated vs Geant4 on the same muons; elebeam_flash is the remaining GPU candidate (EM, Celeritas/AdePT route); see the status section'
 ---
 
 # Fast-sim options for the BO loop
@@ -117,6 +118,28 @@ consistency (corr≈1, no cross-tool calibration burden). Its real strength
 - Line dimensionality >~30D → start Option 3 evaluation.
 - Latency (not grid-hours) is the pain → none of these; see the throughput
   levers in [bo-noise-budget](/concepts/bo-noise-budget.md) (overhead-bound analysis).
+
+## Status 2026-10-23: Option 1 exists, as a physics transport on GPU
+
+- **Built:** the muon side of Option 1, as a first-principles transport rather than a calibrated toy: package
+  `beamfastsim` (umbrella [RobMina/mu2e-fastsim](https://github.com/RobMina/mu2e-fastsim) `beam/`). The same
+  MuBeamCat muons the `mubeam` stage resamples are carried from the DS entrance through the DS field map (RK4,
+  trilinear as `BFGridMap`), the stopping-target foils and the IPA, with G4 Urban energy loss, Highland scattering,
+  range-out and decay in flight, in JAX on an A100.
+- **Validated against Geant4 on the same muons, not by rank correlation:** stopping fraction 0.3583 vs 0.3592
+  (nominal, ratio 0.9976 +- 0.0058); 0.6659 vs 0.6693 for a 49-foil move (ratio 0.995 +- 0.003; the move's effect
+  agrees to 0.3 %). Per-foil profile chi2/ndf 0.80 (nominal), 2.51 (move: the first foil 15 % low, open).
+- **Cost:** 14-21 k muons/s warm on one EAF A100 MIG 2g.20gb slice, against 9.1 ms per event per grid slot here:
+  one slice does the payload of ~130 slots; a 1e6-muon point is ~70 s of compute.
+- **In Mu2eBO:** kit `fastsimkit_eaf`, task `beam_point` (params `geom`, `muons`, `seed`, `repeat`; metric
+  `stop_frac` and stop-profile summaries); study `tests/fixtures/engine_studies/fastsim_beam_point.json` ran through
+  `graph.run` (row `beampt01`). It covers the stopping factor of sob only, not the CE side (`mustops_ce`) or the flash.
+- **Option 4, revised:** `elebeam_flash` (16.6 ms per event, ~85 % of the foilsflash grid-hours) is the stage where
+  GPU EM transport (AdePT/Celeritas) would matter most; still a Mu2eG4-integration project, not a kit task. The CE
+  side (`mustops_ce`, 24.1 ms per event) could follow `beam_point` as a JAX electron transport once electron
+  bremsstrahlung is sampled.
+- Record and numbers: ai-config wiki `mu2e/wiki/sim/beam-muon-transport-fastsim.md` and
+  `mu2e/wiki/sim/gpu-vs-grid-summary.md` (RobMina/ai-config-mu2e).
 
 ## Cross-links
 - Related: [bo-noise-budget](/concepts/bo-noise-budget.md), [saturation-is-acquisition-relative](/concepts/saturation-is-acquisition-relative.md), [batch-bo](/concepts/batch-bo.md), [mu2e-run1-sensitivity](/concepts/mu2e-run1-sensitivity.md), [ml-stack-review-2026-07](/concepts/ml-stack-review-2026-07.md)
