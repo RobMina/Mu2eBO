@@ -1,0 +1,103 @@
+{
+ "schema": 2,
+ "name": "fastsim_veto_c4_run1a_dt",
+ "note": "Two-objective veto-rule study (tier C4 of the CRV veto optimisation; fastsimkit task veto_c4 on Fermilab EAF): the upper edge of the track-coincidence window and the coincidence PE threshold of a veto card, applied to two cached Run 1A selections with S. Grant's dev cut set at 85-200 MeV/c: the cosmics run1a_dev (nts.mu2e.CosmicSignalOnSpillTriggered.MDC2025-000, 10,279 CE-like tracks) for the veto inefficiency, and the CE + 1BB beam sample (nts.mu2e.CeMLeadingLogMix1BB.MDC2025au_best_v1_1-001, 1.93 M selected tracks) for the deadtime (method F, factorised over the beam frames; stock coincidences). Both minimised: a Pareto front.",
+ "knobs": [
+  {
+   "name": "dt_hi",
+   "type": "real",
+   "min": 20.0,
+   "max": 300.0,
+   "unit": "ns",
+   "fmt": "{:.1f}"
+  },
+  {
+   "name": "min_pe",
+   "type": "real",
+   "min": 0.0,
+   "max": 400.0,
+   "unit": "PE",
+   "fmt": "{:.1f}"
+  }
+ ],
+ "derive": {
+  "consts": {},
+  "exprs": {},
+  "profiles": {}
+ },
+ "geom": null,
+ "kits": {},
+ "preflight": null,
+ "evaluate": [
+  {
+   "step": "veto",
+   "kit": "fastsimkit_eaf",
+   "entry": null,
+   "files": [],
+   "files_from": [],
+   "params": {
+    "dt_hi": "dt_hi",
+    "min_pe": "min_pe"
+   },
+   "params_from": {},
+   "fixed": {
+    "task": "veto_c4",
+    "selection": "run1a_dev",
+    "dt_lo": 0.0,
+    "min_layers": 0,
+    "gate_start_lo": 420.0,
+    "gate_end_hi": 1700.0,
+    "pmin": 85.0,
+    "pmax": 200.0,
+    "gate_mode": 0
+   }
+  }
+ ],
+ "objectives": [
+  {
+   "name": "inefficiency",
+   "metric": "veto.inefficiency",
+   "direction": "min",
+   "transform": "none",
+   "noise": 0.005,
+   "fmt": "{:.5f}"
+  },
+  {
+   "name": "deadtime",
+   "metric": "veto.deadtime",
+   "direction": "min",
+   "transform": "none",
+   "noise": 2e-05,
+   "fmt": "{:.6f}"
+  }
+ ],
+ "constraints": [],
+ "extra_metrics": [
+  {
+   "name": "vetoed",
+   "metric": "veto.vetoed",
+   "fmt": "{:.0f}"
+  },
+  {
+   "name": "selected",
+   "metric": "veto.selected",
+   "fmt": "{:.0f}"
+  },
+  {
+   "name": "deadtime_err",
+   "metric": "veto.deadtime_err",
+   "fmt": "{:.6f}"
+  },
+  {
+   "name": "deadtime_full",
+   "metric": "veto.deadtime_full",
+   "fmt": "{:.6f}"
+  }
+ ],
+ "extra_columns": [],
+ "leaderboard": {
+  "file": "leaderboards/leaderboard_fastsim_veto_c4_run1a_dt.tsv",
+  "layout": "v2",
+  "context": []
+ }
+}
