@@ -127,7 +127,7 @@ class TestRepoRegistry(unittest.TestCase):
                          {"task", "events", "seed", "rows", "sipms", "shards",
                           "files_per_job", "shard_offset", "max_events",
                           "wall_minutes", "gen_set", "geom", "muons", "repeat",
-                          "period", "tables", "background"})
+                          "period", "tables", "background", "run_config", "chain_flags"})
         self.assertIn("/beam", cfg.set_env["PYTHONPATH"])     # beam_point (beamfastsim) on UVA
         decl = kit_registry.KITS["fastsimkit"]
         self.assertTrue(decl.step_kit)
