@@ -41,7 +41,7 @@ import measure
 from contract import ContractError
 from kits import KitError
 from point_dir import PointDir
-from study import expand_artifact
+from study import expand_artifact, metrics_read
 
 
 @dataclass(frozen=True)
@@ -131,6 +131,16 @@ def step_params(study, step, env, accepts_lists, upstream) -> Dict[str, Any]:
                              f"stage template under that name")
         params["entry"] = study.entry_template(step.step)
     return params
+
+
+def check_step_submission(kit, study, step, name, params, files, inputs,
+                          workflow) -> bool:
+    """Shared optional admission hook for a fresh submit and check_study."""
+    hook = getattr(kit, "check_submission", None)
+    if hook is None:
+        return False
+    return bool(hook(name, params, files, inputs,
+                     sorted(metrics_read(study, step.step)), workflow))
 
 
 def run_steps(study, *, config: str, state_dir: Path, env, files, kits,
@@ -281,6 +291,11 @@ def _run_one(study, step, config, state_dir, env, files, kits, upstream,
         log(f"[steps] {step.step}: polling {handle} (submitted by an "
             f"earlier run)")
     else:
+        try:
+            check_step_submission(kit, study, step, f"{config}.{step.step}",
+                                  params, step_files, inputs, workflow)
+        except (KitError, ContractError) as exc:
+            return failed(exc)
         # Written first: a kill during the submit (prodtools' takes
         # minutes, anakit's runs the whole analysis) leaves the version.
         pd.write_submit(step.step, step.kit, now)

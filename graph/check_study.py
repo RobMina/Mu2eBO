@@ -43,8 +43,9 @@ from boards import board_for  # noqa: E402
 from contract import EXECUTORS, ContractError, KitSet, launch_problems  # noqa: E402
 from kits import KitError  # noqa: E402
 from leaderboard import LeaderboardError  # noqa: E402
-from point_dir import VERDICT, PointDir  # noqa: E402
-from study_graph import build_study_graph, check_x  # noqa: E402
+from point_dir import DERIVED, GEOM, VERDICT, PointDir  # noqa: E402
+from scheduler import check_step_submission, step_params  # noqa: E402
+from study_graph import build_study_graph, check_x, geometry_file_ref  # noqa: E402
 
 STUDY_PATH_ENV = "AUTORESEARCH_STUDY_PATH"
 ALL_STUDIES = "every launch loads all studies"
@@ -330,7 +331,37 @@ def _geometry_locked(study, kits, *, x, config, executor) -> Check:
         note = "rendered, not pre-checked"
     else:
         note = "no geometry"
-    return Check("geometry", "passed", note=note)
+    # Only independent steps can resolve their exact inputs without fabricated upstream results.
+    env = json.loads(pd.path(DERIVED).read_text())
+    files = ({"geom": geometry_file_ref(study, pd.path(GEOM))}
+             if study.geom is not None else {})
+    problems, notes = check_resolved_submissions(study, kits, env, files, config)
+    return Check("geometry", "failed" if problems else "passed", problems,
+                 note="; ".join([note] + notes))
+
+
+def check_resolved_submissions(study, kits, env, files, config):
+    """No-submit admission for independent steps, using the dispatch hook."""
+    notes, problems = [], []
+    for step in study.steps:
+        if step.upstream:
+            notes.append(f"step {step.step}: submission check skipped: unresolved "
+                         "params_from/files_from dependencies")
+            continue
+        try:
+            kit = kits.get(step.kit)
+            if getattr(kit, "check_submission", None) is None:
+                continue
+            params = step_params(study, step, env, kit.accepts_lists, {})
+            checked = check_step_submission(
+                kit, study, step, f"{config}.{step.step}", params,
+                [files[f] for f in step.files], [],
+                f"{CAMPAIGN}/{config}/{step.step}")
+            if checked:
+                notes.append(f"step {step.step}: native submission check passed")
+        except (KitError, ContractError, KeyError, ValueError, OSError) as exc:
+            problems.append(f"step {step.step}: {type(exc).__name__}: {exc}")
+    return problems, notes
 
 
 def run_checks(path: Path, x_arg: Optional[List[float]], *, executor: str,

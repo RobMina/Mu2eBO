@@ -10,14 +10,20 @@ import hashlib
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from urllib.parse import unquote, urlparse
 
-from typing_extensions import TypedDict
+try:
+    # Pydantic/LangGraph on Python <3.12 requires typing_extensions' variant.
+    from typing_extensions import TypedDict
+except ImportError:
+    # The stdlib-only renderer/admission helpers do not need LangGraph.
+    from typing import TypedDict
+
+if TYPE_CHECKING:
+    from langgraph.graph import StateGraph
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "core"))
-
-from langgraph.graph import END, START, StateGraph  # noqa: E402
 
 from contract import ContractError  # noqa: E402
 from kits import KitError  # noqa: E402
@@ -49,6 +55,31 @@ def check_x(study, x) -> None:
                              f"bounds [{knob.min}, {knob.max}]")
 
 
+def geometry_file_ref(study, path: Path) -> dict:
+    """Content digest plus point-independent geometry/derive definition identity.
+
+    The renderer hash is canonical JSON of exactly {geom, derive} from the
+    loaded measurement definition, NOT measure_basis_sha or a point value.
+    """
+    definition = {k: study.measure_basis[k] for k in ("geom", "derive")}
+    renderer_sha = hashlib.sha256(json.dumps(
+        definition, sort_keys=True, separators=(",", ":"),
+        ensure_ascii=True, allow_nan=False).encode("utf-8")).hexdigest()
+    return {"name": "geom", "uri": path.resolve().as_uri(), "kind": "geom",
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "metadata": {"format": "offline_simpleconfig", "schema_version": 1,
+                         "renderer": "offline_simpleconfig",
+                         "renderer_sha256": renderer_sha}}
+
+
+def render_geometry(study, path: Path, x) -> dict:
+    """Write exact UTF-8 bytes atomically, return their extended FileRef."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_bytes(study.geom.render(x).encode("utf-8"))
+    tmp.replace(path)
+    return geometry_file_ref(study, path)
+
+
 def preflight_basis(pre, settings, env, files) -> dict:
     """What a pre-check verdict depends on: the kit, its settings, the
     point's values the pre-check maps, and the content of every file it
@@ -59,8 +90,13 @@ def preflight_basis(pre, settings, env, files) -> dict:
         uri = ref["uri"]
         if uri.startswith("file://"):
             data = Path(unquote(urlparse(uri).path)).read_bytes()
-            return {"sha256": hashlib.sha256(data).hexdigest()}
-        return {"uri": uri}
+            identity = {"sha256": hashlib.sha256(data).hexdigest()}
+        else:
+            identity = {"uri": uri}
+        for key in ("sha256", "metadata"):
+            if key in ref:
+                identity["declared_" + key] = ref[key]
+        return identity
     basis = {"kit": pre["kit"], "settings": settings,
              "mapped": {k: env[v] for k, v in pre["params"].items()},
              "files": {ref["name"]: ident(ref) for ref in files}}
@@ -86,6 +122,8 @@ def build_study_graph(study, *, config: str, campaign: str, context: dict,
                       through: str = "score") -> StateGraph:
     """through="preflight" ends the graph after the pre-check: no step runs
     and nothing is scored (graph/check_study.py)."""
+    from langgraph.graph import END, START, StateGraph
+
     if through not in ("score", "preflight"):
         raise ValueError(f"through must be 'score' or 'preflight', got "
                          f"{through!r}")
@@ -121,9 +159,7 @@ def build_study_graph(study, *, config: str, campaign: str, context: dict,
         files = {}
         if study.geom is not None:
             path = pd.path(GEOM)
-            write_atomic(path, study.geom.render(shared["x"]))
-            files["geom"] = {"name": "geom", "uri": path.resolve().as_uri(),
-                             "kind": "geom"}
+            files["geom"] = render_geometry(study, path, shared["x"])
         shared["files"] = files
         return {"broken": False}
 

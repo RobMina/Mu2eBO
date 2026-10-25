@@ -18,6 +18,8 @@ The Kit interface, which NativeKit and every adapter implement:
   cancel(handle, workflow) -> state
   close()
   step_problems(study, step) -> [str]   (optional; the launch check)
+  check_submission(name, params, files, inputs, requested_metrics, workflow)
+      -> bool   (optional; resolved admission before a fresh submit)
 
 A kit raises only KitError or ContractError for a failure it expects: a
 server that died, a refused call, a missing timeout, a full disk. KitSet.get
@@ -41,6 +43,8 @@ from __future__ import annotations
 
 import functools
 import importlib
+import json
+import re
 import subprocess
 import threading
 import time
@@ -108,7 +112,7 @@ class Status:
 @dataclass(frozen=True)
 class Results:
     metrics: Dict[str, float]
-    files: Tuple[Dict[str, str], ...]
+    files: Tuple[Dict[str, Any], ...]
     metadata: Dict[str, Any]
 
 
@@ -117,6 +121,9 @@ class Describe:
     params: Tuple[str, ...]
     metrics: Tuple[str, ...]
     accepts_lists: bool
+    capabilities_schema_version: Optional[int] = None
+    requested_metrics_supported: Optional[bool] = None
+    tasks: Optional[Dict[str, Any]] = None
 
 
 def _fields(reply, keys, kit, call) -> dict:
@@ -132,6 +139,26 @@ def _is_int(v) -> bool:
     return isinstance(v, int) and not isinstance(v, bool)
 
 
+def _json_object(value, kit, call, label) -> dict:
+    """Validate JSON types (including string keys and finite numbers), copy."""
+    def valid(v):
+        if v is None or isinstance(v, (str, bool, int)):
+            return True
+        if isinstance(v, float):
+            return _is_number(v)
+        if isinstance(v, list):
+            return all(valid(x) for x in v)
+        if isinstance(v, dict):
+            return all(isinstance(k, str) and valid(x) for k, x in v.items())
+        return False
+    try:
+        if isinstance(value, dict) and valid(value):
+            return json.loads(json.dumps(value, allow_nan=False))
+    except (ValueError, RecursionError):
+        pass
+    raise ContractError(kit, call, f"{label} must be a JSON-safe object")
+
+
 def parse_file_ref(v, kit, call) -> dict:
     ref = _fields(v, ("name", "uri", "kind"), kit, call)
     if not all(isinstance(ref[k], str) and ref[k]
@@ -141,7 +168,16 @@ def parse_file_ref(v, kit, call) -> dict:
     if not ref["uri"].startswith(_URI_SCHEMES):
         raise ContractError(kit, call, f"a FileRef uri starts with "
                             f"{list(_URI_SCHEMES)}, got {ref['uri']!r}")
-    return {"name": ref["name"], "uri": ref["uri"], "kind": ref["kind"]}
+    out = {k: ref[k] for k in ("name", "uri", "kind")}
+    # Only the agreed extensions survive; other top-level keys are ignored.
+    if "sha256" in ref:
+        if (not isinstance(ref["sha256"], str)
+                or re.fullmatch(r"[0-9a-f]{64}", ref["sha256"]) is None):
+            raise ContractError(kit, call, "FileRef sha256 must be 64 lowercase hex digits")
+        out["sha256"] = ref["sha256"]
+    if "metadata" in ref:
+        out["metadata"] = _json_object(ref["metadata"], kit, call, "FileRef metadata")
+    return out
 
 
 def parse_submit(reply, kit, name) -> str:
@@ -215,8 +251,49 @@ def parse_describe(reply, kit) -> Describe:
     if not isinstance(r["accepts_lists"], bool):
         raise ContractError(kit, "describe", "accepts_lists must be true or "
                             "false")
+    version = r.get("capabilities_schema_version")
+    if "capabilities_schema_version" in r and (not _is_int(version) or version != 1):
+        raise ContractError(kit, "describe", f"unsupported capabilities_schema_version {version!r}")
+    supported = r.get("requested_metrics_supported")
+    if "requested_metrics_supported" in r and not isinstance(supported, bool):
+        raise ContractError(kit, "describe", "requested_metrics_supported must be boolean")
+    # Unversioned task extensions retain the legacy ignore-unknown-fields behavior.
+    tasks = (_json_object(r["tasks"], kit, "describe", "tasks")
+             if version == 1 and "tasks" in r else None)
+    if tasks is not None:
+        for task, desc in tasks.items():
+            if not isinstance(desc, dict) or not isinstance(desc.get("metrics"), dict):
+                raise ContractError(kit, "describe", f"task {task!r} needs a metrics object")
+            for metric, info in desc["metrics"].items():
+                if (not isinstance(info, dict) or info.get("availability") not in
+                        ("available", "conditional", "unavailable")):
+                    raise ContractError(kit, "describe", f"task {task!r} metric {metric!r}: invalid availability")
+            def predicate(value):
+                return isinstance(value, dict) and all(isinstance(v, list) and v for v in value.values())
+            rules, patterns = desc.get("metric_rules", []), desc.get("metric_patterns", [])
+            if not isinstance(rules, list) or not isinstance(patterns, list):
+                raise ContractError(kit, "describe", f"task {task!r}: rules/patterns must be lists")
+            for rule in rules:
+                if (not isinstance(rule, dict) or not predicate(rule.get("when")) or
+                        any(not isinstance(rule.get(k, []), list) or not all(isinstance(x, str) for x in rule.get(k, []))
+                            for k in ("unavailable", "conditional"))):
+                    raise ContractError(kit, "describe", f"task {task!r}: malformed metric rule")
+            for pattern in patterns:
+                if (not isinstance(pattern, dict) or not isinstance(pattern.get("pattern"), str)
+                        or not predicate(pattern.get("when", {})) or pattern.get("status") not in
+                        ("available", "conditional", "unavailable")):
+                    raise ContractError(kit, "describe", f"task {task!r}: malformed metric pattern")
+                try:
+                    re.compile(pattern["pattern"])
+                except re.error as exc:
+                    raise ContractError(kit, "describe", f"task {task!r}: invalid metric pattern") from exc
+            if not isinstance(desc.get("defaults", {}), dict):
+                raise ContractError(kit, "describe", f"task {task!r}: defaults must be an object")
+            if "file_kinds" in desc and (not isinstance(desc["file_kinds"], list) or
+                    not all(isinstance(k, str) for k in desc["file_kinds"])):
+                raise ContractError(kit, "describe", f"task {task!r}: file_kinds must be a list of names")
     return Describe(tuple(r["params"]), tuple(r["metrics"]),
-                    r["accepts_lists"])
+                    r["accepts_lists"], version, supported, tasks)
 
 
 def parse_cancel(reply, kit) -> str:
@@ -237,6 +314,9 @@ class NativeKit:
         self.accepts_lists = config.accepts_lists
         self.poll_s = config.poll_s
         self._pause = pause
+        self._described = False
+        self._description = None
+        self._requested_metrics = {}
 
     def start(self) -> None:
         """Start the server if it is not running; idempotent."""
@@ -266,10 +346,11 @@ class NativeKit:
 
     def submit(self, name, params, files, inputs, workflow) -> str:
         # Safe to repeat after a timeout: submit is idempotent by name.
-        reply = self._call("submit", {"name": name, "params": params,
-                                      "files": list(files),
-                                      "inputs": list(inputs)},
-                           workflow, retry_tool_errors=False)
+        args = {"name": name, "params": params, "files": list(files),
+                "inputs": list(inputs)}
+        if name in self._requested_metrics:
+            args["requested_metrics"] = list(self._requested_metrics[name])
+        reply = self._call("submit", args, workflow, retry_tool_errors=False)
         return parse_submit(reply, self.name, name)
 
     def status(self, handle, workflow) -> Status:
@@ -289,11 +370,92 @@ class NativeKit:
                            self.name)
 
     def describe(self) -> Optional[Describe]:
-        if "describe" not in self.tools:
-            return None
-        workflow = f"{self.client.campaign}/launch/describe"
-        return parse_describe(self._call("describe", {}, workflow,
-                                         retry_tool_errors=True), self.name)
+        self.start()
+        server = (self.client.server_version,
+                  getattr(self.client, "_generation", None))
+        if not self._described or server != getattr(self, "_described_server", None):
+            self._description = None
+            if "describe" in self.tools:
+                workflow = f"{self.client.campaign}/launch/describe"
+                self._description = parse_describe(self._call(
+                    "describe", {}, workflow, retry_tool_errors=True), self.name)
+            self._described_server = server
+            self._described = True
+        return self._description
+
+    def step_problems(self, study, step) -> List[str]:
+        """Reject statically known incompatibilities; never guess dynamic parameters."""
+        desc = self.describe()
+        if desc is None or desc.tasks is None:
+            return []
+        dynamic = set(step.params) | set(step.params_from)
+        if "task" in dynamic:
+            return []
+        fixed = {**study.kits.get(step.kit, {}), **step.fixed}
+        task = fixed.get("task")
+        if task is None:
+            return []
+        if task not in desc.tasks:
+            return [f"step {step.step!r}: kit {self.name!r} has no task {task!r}"]
+        spec = desc.tasks[task]
+        known = {k: v for k, v in {**spec.get("defaults", {}), **fixed}.items() if k not in dynamic}
+
+        def matches(when):
+            if any(k in known and known[k] not in values for k, values in when.items()):
+                return False
+            return True if all(k in known for k in when) else None
+
+        problems = []
+        for metric in sorted(metrics_read(study, step.step)):
+            info = spec["metrics"].get(metric)
+            if info is None:
+                possible = [p for p in spec.get("metric_patterns", [])
+                            if re.fullmatch(p["pattern"], metric) and matches(p.get("when", {})) is not False]
+                if not possible:
+                    problems.append(f"step {step.step!r}: task {task!r} has no metric {metric!r} in this configuration")
+                continue
+            availability, reason = info["availability"], info.get("reason", "")
+            uncertain = False
+            for rule in spec.get("metric_rules", []):
+                applies = matches(rule["when"])
+                status = next((v for v in ("unavailable", "conditional") if metric in rule.get(v, [])), None)
+                if status is None or applies is False:
+                    continue
+                if applies is None:
+                    uncertain = True
+                else:
+                    availability, reason, uncertain = status, rule.get("reason", ""), False
+            if availability == "unavailable" and not uncertain:
+                problems.append(f"step {step.step!r}: metric {metric!r} unavailable: {reason}")
+        if step.files and "file_kinds" in spec and "geom" not in spec["file_kinds"]:
+            problems.append(f"step {step.step!r}: task {task!r} does not accept rendered geometry")
+        return problems
+
+    def check_submission(self, name, params, files, inputs, requested_metrics,
+                         workflow) -> bool:
+        """Opt-in resolved admission, before any durable submit record.
+
+        Legacy kits receive no check call or new submit argument. A successful
+        check binds the requested metrics to this deterministic handle.
+        """
+        self._requested_metrics.pop(name, None)
+        desc = self.describe()
+        if desc is None or desc.requested_metrics_supported is not True:
+            return False
+        if "check" not in self.tools:
+            raise ContractError(self.name, "check", "requested-metric admission requires check")
+        if not isinstance(requested_metrics, list) or not all(
+                isinstance(m, str) and m for m in requested_metrics):
+            raise ContractError(self.name, "check", "requested_metrics must be a list of names")
+        wanted = sorted(set(requested_metrics))
+        ok, message = parse_check(self._call("check", {
+            "name": name, "params": params, "files": list(files),
+            "inputs": list(inputs), "requested_metrics": wanted,
+        }, workflow, retry_tool_errors=True), self.name)
+        if not ok:
+            raise ContractError(self.name, "check", f"submission refused: {message}")
+        self._requested_metrics[name] = wanted
+        return True
 
     def cancel(self, handle, workflow) -> str:
         return parse_cancel(self._call("cancel", {"handle": handle}, workflow,
@@ -614,7 +776,8 @@ def launch_problems(study, kits, *, executor: str, parallel,
                                     f"{unknown} (it accepts "
                                     f"{list(described.params)})")
                 absent = sorted(metrics - set(described.metrics))
-                if absent:
+                # Opt-in checks validate task/config-specific names beyond the legacy flat list.
+                if absent and described.requested_metrics_supported is not True:
                     problems.append(f"kit {name!r} does not return metric(s) "
                                     f"{absent} (it returns "
                                     f"{list(described.metrics)})")

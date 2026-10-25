@@ -184,3 +184,12 @@ on one GPU.
   configuration of the fast chain).
 - Unattended use from FNAL: Globus Compute endpoint at UVA, or a relay.
 - B200 needs an image with cuBLAS >= 13.2 before production use.
+
+## Native rendered geometry and capability admission
+
+The optional schema-1 handshake passes content-addressed rendered target
+overlays and requests exactly the metrics the study reads. See
+[Native geometry and requested-metric admission](../../docs/native-geometry-capabilities.md)
+for the bounded include/overlay policy, renderer identity, legacy behavior,
+resume rules, and the technical `fastsim_beam_geometry` fixture. These contract
+tests use fake clients; they are not new physics results or endpoint validation.

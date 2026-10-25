@@ -1,0 +1,71 @@
+{
+ "schema": 2,
+ "name": "fastsim_beam_geometry",
+ "note": "Technical native geometry/capability handshake fixture, not a physics result or validated optimization. Sends one bounded target-pitch overlay using geom_common; no named geom is selected. Change the step kit to fastsimkit for UVA; fastsimkit_eaf selects EAF.",
+ "knobs": [
+  {
+   "name": "deltaZ",
+   "type": "real",
+   "min": 20.0,
+   "max": 24.0,
+   "unit": "mm",
+   "fmt": "{:.6f}"
+  }
+ ],
+ "derive": {
+  "consts": {},
+  "exprs": {},
+  "profiles": {}
+ },
+ "geom": {
+  "writer": "offline_simpleconfig",
+  "base": "Offline/Mu2eG4/geom/geom_common.txt",
+  "lines": [
+   {
+    "key": "stoppingTarget.deltaZ",
+    "type": "double",
+    "expr": "deltaZ",
+    "fmt": "{:.6f}"
+   }
+  ]
+ },
+ "kits": {},
+ "preflight": null,
+ "evaluate": [
+  {
+   "step": "beam",
+   "kit": "fastsimkit_eaf",
+   "entry": null,
+   "files": [
+    "geom"
+   ],
+   "files_from": [],
+   "params": {},
+   "params_from": {},
+   "fixed": {
+    "task": "beam_point",
+    "muons": 1000,
+    "seed": 1,
+    "repeat": 1
+   }
+  }
+ ],
+ "objectives": [
+  {
+   "name": "stop_frac",
+   "metric": "beam.stop_frac",
+   "direction": "max",
+   "transform": "none",
+   "noise": 0.0015,
+   "fmt": "{:.4f}"
+  }
+ ],
+ "constraints": [],
+ "extra_metrics": [],
+ "extra_columns": [],
+ "leaderboard": {
+  "file": "leaderboards/leaderboard_fastsim_beam_geometry.tsv",
+  "layout": "v2",
+  "context": []
+ }
+}

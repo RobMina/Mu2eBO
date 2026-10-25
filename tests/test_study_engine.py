@@ -166,7 +166,7 @@ class TestLoadedStudies(TmpCase):
         # fastsim_veto_c4_run1a, fastsim_veto_c4_run1a_dt, fastsim_beam_point and
         # fastsim_crv_response_prop.
         self.assertEqual(r.stdout.strip().splitlines()[-1],
-                         "['branin', 'ce_chain', 'fastsim_beam_point', 'fastsim_bench', "
+                         "['branin', 'ce_chain', 'fastsim_beam_geometry', 'fastsim_beam_point', 'fastsim_bench', "
                          "'fastsim_chain_point', 'fastsim_chain_point_crygen', 'fastsim_crv_response_prop', "
                          "'fastsim_eaf_regression', 'fastsim_veto_c4_run1a', 'fastsim_veto_c4_run1a_dt', "
                          "'foilsflash_ax', 'foilspf_nominal', "
