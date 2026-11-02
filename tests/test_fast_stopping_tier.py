@@ -84,6 +84,10 @@ class TestStandInTools(unittest.TestCase):
         self.assertAlmostEqual(res["stops"]["ratio_mean"], 1.0, places=6)
         self.assertEqual(res["stops"]["spearman"]["value"], 1.0)
         self.assertEqual(res["sob"]["g4_stops"]["kendall"]["value"], 1.0)
+        fixed = stand_in.compare(pts, fast, None, kappa=0.16)
+        self.assertEqual(fixed["stops"]["kappa_source"], "given")
+        self.assertEqual(fixed["stops"]["held_out_points"], 4)
+        self.assertAlmostEqual(fixed["stops"]["ratio_mean"], 1.0, places=6)
 
     def test_latency_timeline(self):
         self.point("a", 0.05, 1.0)
