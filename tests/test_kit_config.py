@@ -123,6 +123,8 @@ class TestRepoRegistry(unittest.TestCase):
         cfg = kc.load_kit_configs()["fastsimkit"]
         self.assertEqual(cfg.executors, ("grid",))
         self.assertIn("SSH_AUTH_SOCK", cfg.env_passthrough)
+        self.assertIn("M2FS_SITE_ENV", cfg.env_passthrough)        # site settings for the kit server
+        self.assertIn('. "$M2FS_SITE_ENV"', cfg.command[2])
         self.assertEqual(set(cfg.fixed_keys),
                          {"task", "events", "seed", "rows", "sipms", "shards",
                           "files_per_job", "shard_offset", "max_events",
@@ -172,6 +174,14 @@ class TestRepoRegistry(unittest.TestCase):
         self.assertEqual(s.steps[0].fixed["task"], "crv_response")
         self.assertEqual([k.name for k in s.knobs],
                          ["speed_EX", "atten_EX", "atten_T1", "speed_T2", "atten_T2"])
+
+    def test_fastsim_foilspfbpz_stops_study_loads(self):
+        path = (Path(__file__).parent / "fixtures" / "engine_studies"
+                / "fastsim_foilspfbpz_stops.json")
+        s = st.load_study_file(path)
+        self.assertEqual(kit_registry.kits_of(s), {"fastsimkit"})
+        self.assertEqual(s.steps[0].fixed["task"], "beam_point")
+        self.assertEqual(s.steps[0].files, ("geom",))
 
     def test_fastsim_beam_point_study_loads(self):
         path = (Path(__file__).parent / "fixtures" / "engine_studies"
