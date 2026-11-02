@@ -25,9 +25,11 @@ Points: 65 G4 rows (`foilspfbpz_ax` upstream board 62, `foilspf_nominal` 1, `foi
 `foilsnopa_bb` is left out because its G4 geometry removes the IPA. G4 stops per event range from 0.057 to 0.130,
 fast stop fractions from 0.36 to 0.80.
 
-The two quantities differ by a normalisation k (DS-entrance muons per generated event of the G4 input sample). The
-fast table and the boards also use different MuBeamCat samples. So k is a **one-point calibration of the absolute
-level**: it is fixed on the nominal target alone, and the other 64 points are held out.
+The two quantities differ by a normalisation k. The fast table starts at the DS entrance (about one muon per
+event). The boards' MuBeamCat sample starts at TS3: the resampled primaries of the stopped muons start near z = 0,
+x = 1 m in the Mu2e frame. So k is the transmission from TS3 to the DS entrance times the muons per event. It is a
+**one-point calibration of the absolute level**: fixed on the nominal target alone, with the other 64 points held
+out.
 
 | Quantity | Value |
 |---|---|
