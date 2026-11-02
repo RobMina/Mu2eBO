@@ -4,7 +4,7 @@ title: fastsimkit — the Mu2e JAX fast chain as a native kit
 description: 'Native contract kit (kits.toml) for the JAX CRV fast sim/reco of RobMina/mu2e-fastsim on a compute endpoint, one Slurm job per point; UVA Rivanna/Afton over ssh today; smoke task reco_bench passes end to end (2026-10-21); kit host must be on the UVA network'
 status: active
 status_note: 'tasks live: reco_bench, response_bench, v4_response, chain_point; EAF: chain, regression, veto_c4, beam_point'
-timestamp: '2026-10-23'
+timestamp: '2026-11-02'
 ---
 
 # fastsimkit — the Mu2e JAX fast chain as a native kit
@@ -176,6 +176,21 @@ on one GPU.
   `tests/test_endpoints.py`, `uva/README.md`
 - Endpoint record (validation, costs): ai-config wiki
   `mu2e/wiki/sim/uva-hpc-endpoint.md` (RobMina/ai-config-mu2e)
+
+## Fast stopping tier of foilspfbpz_ax (`fastsim_foilspfbpz_stops`, 2026-11-02)
+- Study fixture with foilspfbpz_ax's knobs and derive; the geometry is the bounded target overlay on geom_common
+  (with `hasTSdA = false`, as in the G4 study); one `beam_point` step on `fastsimkit` (UVA); objective `stop_frac`.
+  Needs mu2e-fastsim-core and umbrella with the `hasTSdA` overlay switch (branch `bo-fast-y5`).
+- **Site settings:** the kit has no built-in site values and the server starts with the MCP default environment, so
+  `[fastsimkit]` sources `$M2FS_SITE_ENV` (umbrella site.env format: FASTSIMKIT_SCRATCH, _SLURM_HOST,
+  _SLURM_ACCOUNT, _FNAL_HOST, _BEAM_DATA, ...) before starting.
+- **Validation on 65 G4 rows** (no new Geant4; docs/fast-stopping-tier.md): stop rate per point to 0.3 % after a
+  one-point normalisation on the nominal target, Spearman 0.9991. Stops alone rank sob at Spearman 0.25 +- 0.13: the
+  CE box efficiency moves against the stops.
+- **graph.run on UVA** from a laptop kit host: 4.4 and 5.4 min launch to row (one A100, ~3 SU), against 248 min
+  (median) for a foilspfbpz_ax point.
+- `graph.latency` (wall per step from the point records) and `graph.stand_in` (extract a board's step metrics and
+  target overlays; compare fast results) are read-only tools.
 
 ## Open questions / TODO
 - Input streaming dominates a short `chain_point` job (the FNAL leg runs at

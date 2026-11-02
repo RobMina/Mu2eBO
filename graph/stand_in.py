@@ -5,6 +5,8 @@ Read only on the point records; writes only under --out.
       per point: the step metrics the board's objectives come from (stops,
       ce_edep, sob, flash) -> DIR/g4_points.json, and the point's stopping
       target as a bounded overlay on geom_common.txt -> DIR/overlays/<config>.txt
+  python -m graph.stand_in collect --runs RUNDIR --out fast.json
+      RUNDIR/<config>/metrics.json (one beam_point output per point) -> {config: metrics}
   python -m graph.stand_in compare --g4 DIR/g4_points.json --fast fast.json [--anchor CONFIG] [--json out]
       fast.json: {config: {"stop_frac": f, "stop_frac_err": e, ...}}; reports
       the stop-rate agreement (scale fixed on --anchor only), rank correlations
@@ -91,6 +93,11 @@ def extract(grid: Path, configs: List[str], out: Path) -> Dict[str, Any]:
     return points
 
 
+def collect(runs: Path) -> Dict[str, Any]:
+    """{config: metrics} of every RUNDIR/<config>/metrics.json."""
+    return {p.parent.name: json.loads(p.read_text()) for p in sorted(Path(runs).glob("*/metrics.json"))}
+
+
 def board_configs(board: Path) -> List[str]:
     rows = Path(board).read_text().splitlines()[1:]
     return [r.split("\t", 1)[0] for r in rows if r.strip()]
@@ -124,23 +131,21 @@ def kendall(a, b) -> float:
     return float(s[np.triu_indices(n, 1)].sum() / (n * (n - 1) / 2))
 
 
-def bootstrap(fn, a, b, n=2000, seed=1) -> Dict[str, float]:
-    """Point estimate and the 16-84 % bootstrap interval over points."""
+def jackknife(fn, a, b) -> Dict[str, float]:
+    """Point estimate and its leave-one-point-out jackknife standard error."""
     import numpy as np
-    rng = np.random.default_rng(seed)
     a, b = np.asarray(a, float), np.asarray(b, float)
-    vals = []
-    for _ in range(n):
-        i = rng.integers(0, len(a), len(a))
-        if len(np.unique(a[i])) > 2:
-            vals.append(fn(a[i], b[i]))
-    lo, hi = np.percentile(vals, [16, 84])
-    return {"value": round(fn(a, b), 4), "lo68": round(float(lo), 4), "hi68": round(float(hi), 4)}
+    n = len(a)
+    loo = np.array([fn(np.delete(a, i), np.delete(b, i)) for i in range(n)])
+    se = math.sqrt((n - 1) / n * np.sum((loo - loo.mean()) ** 2))
+    return {"value": round(fn(a, b), 4), "err": round(float(se), 4)}
 
 
-def compare(g4: Dict[str, Any], fast: Dict[str, Any], anchor: Optional[str]) -> Dict[str, Any]:
+def compare(g4: Dict[str, Any], fast: Dict[str, Any], anchor: Optional[str],
+            exclude: Optional[List[str]] = None) -> Dict[str, Any]:
     import numpy as np
-    names = sorted(c for c in g4 if c in fast and "stops.stops_per_gen_event" in g4[c])
+    names = sorted(c for c in g4 if c in fast and "stops.stops_per_gen_event" in g4[c]
+                   and c not in (exclude or []))
     if len(names) < 3:
         raise ValueError(f"only {len(names)} points have both a full-simulation and a fast result")
     G = np.array([g4[c]["stops.stops_per_gen_event"] for c in names])
@@ -176,7 +181,7 @@ def compare(g4: Dict[str, Any], fast: Dict[str, Any], anchor: Optional[str]) -> 
         "chi2_ndf": round(float(np.sum(pull ** 2) / len(h)), 3),
         "max_abs_pull": round(float(np.max(np.abs(pull))), 2),
         "slope_log": None,
-        "spearman": bootstrap(spearman, F, G), "kendall": bootstrap(kendall, F, G),
+        "spearman": jackknife(spearman, F, G), "kendall": jackknife(kendall, F, G),
         "g4_range": [float(G.min()), float(G.max())],
     }
     lf, lg = np.log(F), np.log(G)
@@ -192,10 +197,10 @@ def compare(g4: Dict[str, Any], fast: Dict[str, Any], anchor: Optional[str]) -> 
             continue
         Y = np.array([g4[names[k]][key] for k in have])
         out[obj] = {"points": len(have),
-                    "fast_stop_frac": {"spearman": bootstrap(spearman, F[have], Y),
-                                       "kendall": bootstrap(kendall, F[have], Y)},
-                    "g4_stops": {"spearman": bootstrap(spearman, G[have], Y),
-                                 "kendall": bootstrap(kendall, G[have], Y)}}
+                    "fast_stop_frac": {"spearman": jackknife(spearman, F[have], Y),
+                                       "kendall": jackknife(kendall, F[have], Y)},
+                    "g4_stops": {"spearman": jackknife(spearman, G[have], Y),
+                                 "kendall": jackknife(kendall, G[have], Y)}}
         if obj == "sob":
             # sob = S/sqrt(B), S proportional to stops x (CE efficiency in the box): split the log variance
             ly, ls = np.log(Y), np.log(G[have])
@@ -214,10 +219,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     e.add_argument("--grid", required=True, type=Path)
     e.add_argument("--board", required=True, type=Path, action="append")
     e.add_argument("--out", required=True, type=Path)
+    k = sp.add_parser("collect")
+    k.add_argument("--runs", required=True, type=Path)
+    k.add_argument("--out", required=True, type=Path)
     c = sp.add_parser("compare")
     c.add_argument("--g4", required=True, type=Path)
     c.add_argument("--fast", required=True, type=Path)
     c.add_argument("--anchor", default=None, help="config whose pair fixes the scale (held out of the agreement)")
+    c.add_argument("--exclude", action="append", default=[], help="config left out (repeatable)")
     c.add_argument("--json", type=Path)
     args = ap.parse_args(argv)
     if args.cmd == "extract":
@@ -225,7 +234,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         pts = extract(args.grid, configs, args.out)
         print(f"{len(pts)} points -> {args.out}")
         return 0
-    res = compare(json.loads(args.g4.read_text()), json.loads(args.fast.read_text()), args.anchor)
+    if args.cmd == "collect":
+        got = collect(args.runs)
+        args.out.write_text(json.dumps(got, indent=1, sort_keys=True))
+        print(f"{len(got)} points -> {args.out}")
+        return 0
+    res = compare(json.loads(args.g4.read_text()), json.loads(args.fast.read_text()), args.anchor, args.exclude)
     text = json.dumps({k: v for k, v in res.items() if k != "per_point"}, indent=1)
     print(text)
     if args.json:

@@ -6,6 +6,9 @@ heading at the TOP (create it if absent). One bullet per change:
 superseded, linted.
 
 
+## 2026-11-02
+- **updated** [fastsimkit](/external/fastsimkit.md): fast stopping tier `fastsim_foilspfbpz_stops` (graph.run on UVA, 4-5 min per point), its validation on 65 G4 board points, and `M2FS_SITE_ENV` for the kit server; tools `graph.latency` and `graph.stand_in`; record docs/fast-stopping-tier.md
+
 ## 2026-10-23
 - **updated** [fast-sim-options-for-bo](/concepts/fast-sim-options-for-bo.md): status section — Option 1 built as a GPU field-map + foil transport (`beamfastsim`, task `beam_point`), validated vs Geant4 on the same muons; `elebeam_flash` named as the remaining GPU-EM candidate
 - **updated** README.md: `fastsimkit` and `fastsimkit_eaf` (endpoints, task families, the six fastsim studies)
