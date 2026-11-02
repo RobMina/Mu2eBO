@@ -142,7 +142,7 @@ def jackknife(fn, a, b) -> Dict[str, float]:
 
 
 def compare(g4: Dict[str, Any], fast: Dict[str, Any], anchor: Optional[str],
-            exclude: Optional[List[str]] = None) -> Dict[str, Any]:
+            exclude: Optional[List[str]] = None, kappa: Optional[float] = None) -> Dict[str, Any]:
     import numpy as np
     names = sorted(c for c in g4 if c in fast and "stops.stops_per_gen_event" in g4[c]
                    and c not in (exclude or []))
@@ -155,7 +155,10 @@ def compare(g4: Dict[str, Any], fast: Dict[str, Any], anchor: Optional[str],
     Fe = np.array([fast[c]["stop_frac_err"] for c in names])
     out: Dict[str, Any] = {"points": len(names)}
     # Scale: G4 stops per generated event = kappa x fast stops per DS-entrance muon (an upstream normalisation).
-    if anchor is not None:
+    if kappa is not None:          # a scale measured upstream (e.g. muons per event of the G4 input), no board point
+        kappa_err = 0.0
+        held = list(range(len(names)))
+    elif anchor is not None:
         if anchor not in names:
             raise ValueError(f"anchor {anchor!r} has no full-simulation and fast pair")
         i = names.index(anchor)
@@ -173,6 +176,7 @@ def compare(g4: Dict[str, Any], fast: Dict[str, Any], anchor: Optional[str],
     pull = (ratio[h] - 1) / rerr[h]
     out["stops"] = {
         "kappa": float(kappa), "kappa_err": float(kappa_err), "anchor": anchor,
+        "kappa_source": "given" if anchor is None and kappa_err == 0.0 else ("anchor" if anchor else "fit"),
         "held_out_points": len(h),
         "ratio_mean": round(float(ratio[h].mean()), 5),
         "ratio_mean_err": round(float(ratio[h].std(ddof=1) / math.sqrt(len(h))), 5),
@@ -238,6 +242,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     c.add_argument("--g4", required=True, type=Path)
     c.add_argument("--fast", required=True, type=Path)
     c.add_argument("--anchor", default=None, help="config whose pair fixes the scale (held out of the agreement)")
+    c.add_argument("--kappa", type=float, default=None,
+                   help="fixed scale (G4 stops per event / fast stops per muon) from outside the board, e.g. muons per event")
     c.add_argument("--exclude", action="append", default=[], help="config left out (repeatable)")
     c.add_argument("--json", type=Path)
     args = ap.parse_args(argv)
@@ -251,7 +257,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         args.out.write_text(json.dumps(got, indent=1, sort_keys=True))
         print(f"{len(got)} points -> {args.out}")
         return 0
-    res = compare(json.loads(args.g4.read_text()), json.loads(args.fast.read_text()), args.anchor, args.exclude)
+    res = compare(json.loads(args.g4.read_text()), json.loads(args.fast.read_text()), args.anchor, args.exclude, args.kappa)
     text = json.dumps({k: v for k, v in res.items() if k != "per_point"}, indent=1)
     print(text)
     if args.json:

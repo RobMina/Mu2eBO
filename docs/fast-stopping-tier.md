@@ -44,6 +44,23 @@ out.
 The fast stage follows the geometry dependence of the stopping rate at the 0.3 % level, consistent with the
 statistics. The offset of the anchored ratio (0.4 %) is the anchor's own statistical error.
 
+**Unscaled, with the boards' own beam sample.** A stock Geant4 pass of the TSd + DS stage was run on one file of
+the boards' MuBeamCat sample: 105,000 events, the nominal target, the boards' settings otherwise. It gives a fast
+table that starts at the Coll5_Out virtual detector (z = 3930 mm; the fast transport runs with `--z-up 3900`):
+16,956 muons, 0.16149 +- 0.00124 per event. That is the predicted scale, taken from no board point. On the same
+muons, nominal target, Geant4 stops 0.36188 per muon and the fast stage 0.36200.
+
+| Quantity (65 points, scale = predicted muons per event) | Value |
+|---|---|
+| G4 / (k x fast), mean | 1.0045 +- 0.0005 (common +-0.0077 from k) |
+| rms over points / expected from statistics | 0.0042 / 0.0073 (fast statistics of 16,956 muons, shared by all points) |
+| chi2/ndf, max pull | 0.76, 2.2 |
+| slope of log G4 vs log fast | 0.9997 |
+| Spearman / Kendall | 0.998 +- 0.001 / 0.978 +- 0.008 |
+
+The one-point scale of the first table (0.16314 +- 0.00077) agrees with this predicted value (1.1 sigma). It was
+the boards' muons per event at the DS entrance (transmission from TS3), not a correction of the fast physics.
+
 **Stops alone do not rank sob.** Across the same 65 points, Spearman(sob, G4 stops) = 0.25 +- 0.13 (fast stops
 0.25 +- 0.13), and flash_edep is uncorrelated with the stops (0.10 +- 0.13). In log sob = log stops + rest, the
 variance of log stops (0.025) and of the rest (0.019) are each larger than the variance of log sob (0.004). The rest
