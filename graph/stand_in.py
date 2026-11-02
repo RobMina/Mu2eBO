@@ -209,6 +209,18 @@ def compare(g4: Dict[str, Any], fast: Dict[str, Any], anchor: Optional[str],
             out[obj]["var_log_stops"] = float(np.var(ls))
             out[obj]["var_log_rest"] = float(np.var(rest))
             out[obj]["cov_log_stops_rest"] = float(np.cov(ls, rest, ddof=0)[0, 1])
+            parts = [k for k in have if "sob.signal_rate" in g4[names[k]] and "sob.total_background" in g4[names[k]]]
+            if len(parts) == len(have):
+                S = np.array([g4[names[k]]["sob.signal_rate"] for k in have])
+                B = np.array([g4[names[k]]["sob.total_background"] for k in have])
+                W = np.array([g4[names[k]].get("sob.signal_box_high_mev", np.nan)
+                              - g4[names[k]].get("sob.signal_box_low_mev", np.nan) for k in have])
+                eff = np.log(S) - ls            # CE efficiency in the box per stop (log, up to a constant)
+                out[obj]["var_log_box_eff"] = float(np.var(eff))
+                out[obj]["var_half_log_bkg"] = float(np.var(0.5 * np.log(B)))
+                out[obj]["cov_box_eff_half_log_bkg"] = float(np.cov(eff, -0.5 * np.log(B), ddof=0)[0, 1])
+                out[obj]["box_width_mev"] = {"min": float(np.nanmin(W)), "median": float(np.nanmedian(W)),
+                                             "max": float(np.nanmax(W))}
     return out
 
 
