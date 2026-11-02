@@ -59,6 +59,22 @@ A100), a fast point took 4.4 and 5.4 min from launch to row. That includes 0.1-2
 (about 1.6 min of compilation) and 0.6-0.8 min of input streaming. Both GPU results equal the CPU results for the
 same seed.
 
+## Throughput
+
+Measured on warm passes over the 105,350 reference muons, with the nominal target and a 49-foil board point. The
+baseline is a stock grid job (one slot) running the G4 `mubeam` stage, at about 21.6 ms per event (18 CPU-h for the
+point's 3 M events), so 46 events/s. A G4 event starts at TS3 and a fast muon starts at the DS entrance, so the fair
+comparison is target stops per second (equal statistics on the stopping rate).
+
+| Device | Muons/s (nominal / 49 foils) | Grid jobs, per event | Target stops/s | Grid jobs, per stop |
+|---|---:|---:|---:|---:|
+| stock grid job | 46 | 1 | 2.7 / 4.5 | 1 |
+| A100 (whole card) | 43,400 / 40,900 | ~940 / ~890 | 15,600 / 24,500 | ~5,800 / ~5,400 |
+| MIG 1g.24gb slice of an RTX PRO 6000 | 10,100 / 9,600 | ~220 / ~210 | 3,630 / 5,780 | ~1,340 / ~1,280 |
+
+The stop fractions are identical on every device and on CPU. One point is overhead-bound: about 2.5 s of warm
+transport on the A100, against 1-1.7 min of compilation and about 1 min of input staging.
+
 ## Running it
 
 The kit server sources the site file named by `M2FS_SITE_ENV` (see `kits.toml`). Then:
