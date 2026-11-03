@@ -6,6 +6,9 @@ heading at the TOP (create it if absent). One bullet per change:
 superseded, linted.
 
 
+## 2026-11-03
+- **updated** [fastsimkit](/external/fastsimkit.md): fast sob tier `fastsim_foilspfbpz_sob` (task `beam_sob`, 20.5 min per point on UVA CPU), validation on 65 G4 board points, `compare-sob --g4-ce`; record docs/fast-sob-tier.md
+
 ## 2026-11-02
 - **updated** [fastsimkit](/external/fastsimkit.md): fast stopping tier `fastsim_foilspfbpz_stops` (graph.run on UVA, 4-5 min per point), its validation on 65 G4 board points, and `M2FS_SITE_ENV` for the kit server; tools `graph.latency` and `graph.stand_in`; record docs/fast-stopping-tier.md
 

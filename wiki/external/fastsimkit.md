@@ -4,7 +4,7 @@ title: fastsimkit — the Mu2e JAX fast chain as a native kit
 description: 'Native contract kit (kits.toml) for the JAX CRV fast sim/reco of RobMina/mu2e-fastsim on a compute endpoint, one Slurm job per point; UVA Rivanna/Afton over ssh today; smoke task reco_bench passes end to end (2026-10-21); kit host must be on the UVA network'
 status: active
 status_note: 'tasks live: reco_bench, response_bench, v4_response, chain_point; EAF: chain, regression, veto_c4, beam_point'
-timestamp: '2026-11-02'
+timestamp: '2026-11-03'
 ---
 
 # fastsimkit — the Mu2e JAX fast chain as a native kit
@@ -191,6 +191,15 @@ on one GPU.
   (median) for a foilspfbpz_ax point.
 - `graph.latency` (wall per step from the point records) and `graph.stand_in` (extract a board's step metrics and
   target overlays; compare fast results) are read-only tools.
+
+## Fast sob tier of foilspfbpz_ax (`fastsim_foilspfbpz_sob`, 2026-11-03)
+- Same knobs, derive and overlay as the stopping tier; one `beam_sob` step on `fastsimkit` (UVA, one 32-core CPU
+  job): stops on the study's Run1Baa beam sample (no scale) -> CE chain -> calorimeter-acceptance proxy -> the
+  study's approximate sensitivity. Objective `beam.sensitivity`. Needs core and umbrella branch `y5r-sob`.
+- **Validation on 65 G4 rows** (docs/fast-sob-tier.md): G4 / fast sob 0.992 +- 0.001 (+-0.008 common), rms 0.46 %,
+  Spearman 0.993. `graph.stand_in compare-sob --g4-ce`: the G4 acceptance must come from the estimate on the
+  point's own EdepAna ntuple, because the board key `ce_edep.selected_per_gen_event` counts something else.
+- **graph.run on UVA**: 20.5 min launch to row (queue 3 min, job 16.7 min), against 248 min (median).
 
 ## Open questions / TODO
 - Input streaming dominates a short `chain_point` job (the FNAL leg runs at
