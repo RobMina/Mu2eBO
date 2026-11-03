@@ -129,7 +129,7 @@ class TestRepoRegistry(unittest.TestCase):
                          {"task", "events", "seed", "rows", "sipms", "shards",
                           "files_per_job", "shard_offset", "max_events",
                           "wall_minutes", "gen_set", "geom", "muons", "repeat",
-                          "period", "tables", "background", "run_config", "chain_flags"})
+                          "period", "tables", "background", "run_config", "chain_flags", "electrons"})
         self.assertIn("/beam", cfg.set_env["PYTHONPATH"])     # beam_point (beamfastsim) on UVA
         decl = kit_registry.KITS["fastsimkit"]
         self.assertTrue(decl.step_kit)
@@ -182,6 +182,15 @@ class TestRepoRegistry(unittest.TestCase):
         self.assertEqual(kit_registry.kits_of(s), {"fastsimkit"})
         self.assertEqual(s.steps[0].fixed["task"], "beam_point")
         self.assertEqual(s.steps[0].files, ("geom",))
+
+    def test_fastsim_foilspfbpz_sob_study_loads(self):
+        path = (Path(__file__).parent / "fixtures" / "engine_studies"
+                / "fastsim_foilspfbpz_sob.json")
+        s = st.load_study_file(path)
+        self.assertEqual(kit_registry.kits_of(s), {"fastsimkit"})
+        self.assertEqual(s.steps[0].fixed["task"], "beam_sob")
+        self.assertEqual(s.steps[0].files, ("geom",))
+        self.assertEqual([o.metric for o in s.objectives], ["beam.sensitivity"])
 
     def test_fastsim_beam_point_study_loads(self):
         path = (Path(__file__).parent / "fixtures" / "engine_studies"
