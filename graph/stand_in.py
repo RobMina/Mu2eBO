@@ -11,6 +11,10 @@ Read only on the point records; writes only under --out.
       fast.json: {config: {"stop_frac": f, "stop_frac_err": e, ...}}; reports
       the stop-rate agreement (scale fixed on --anchor only), rank correlations
       and how much of each objective the stopping rate explains.
+  python -m graph.stand_in compare-sob --g4 DIR/g4_points.json --fast fast.json [--g4-ce refsob.json]
+      [--kappa-rel-err E] [--json out]
+      fast.json: {config: metrics of beamfastsim.cesob point}; the fast sob against the board's, unscaled, with
+      its factors (stops per event, CE acceptance, signal per stop in the box, background) and rank correlations.
 
 The overlay keeps only the target keys a fast beam stage models
 (TARGET_KEYS) and hasTSdA; everything else in the rendered geometry (supports,
@@ -228,6 +232,90 @@ def compare(g4: Dict[str, Any], fast: Dict[str, Any], anchor: Optional[str],
     return out
 
 
+# sob of the foils studies: S/sqrt(B) with S = NPOT x BR x stops/POT x accepted per CE x fraction in the box
+SOB_NPOT_BR = 1.0e18 * 1.0e-13 * 0.609
+SOB_UPSTREAM_EFF = 0.01278168          # the study's fixed MuBeam events per POT (stops step)
+
+
+def _rel_stats(ratio, rerr) -> Dict[str, float]:
+    import numpy as np
+    pull = (ratio - ratio.mean()) / rerr
+    return {"mean": round(float(ratio.mean()), 5), "mean_err": round(float(ratio.std(ddof=1) / math.sqrt(len(ratio))), 5),
+            "rms": round(float(ratio.std(ddof=1)), 5), "expected_rms_stat": round(float(np.sqrt(np.mean(rerr ** 2))), 5),
+            "chi2_ndf_about_mean": round(float(np.sum(pull ** 2) / (len(ratio) - 1)), 3),
+            "min": round(float(ratio.min()), 4), "max": round(float(ratio.max()), 4)}
+
+
+def compare_sob(g4: Dict[str, Any], fast: Dict[str, Any], exclude: Optional[List[str]] = None,
+                g4_sob_noise: float = 0.0021, kappa_rel_err: float = 0.0,
+                g4_ce: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Fast sob (beamfastsim.cesob point metrics) against the boards' sob, unscaled, and its factors: stops per
+    generated event, CE acceptance (calorimeter selection per generated CE), signal per stop in the box, background.
+    g4_sob_noise: the study's statistical noise on sob (absolute); kappa_rel_err: common relative error of the fast
+    stops normalisation (muons per event of the start table). g4_ce: {config: metrics of the same estimate on the
+    point's own EdepAna ntuple (cesob refsob)}; its ce_acceptance (weighted selected / generated, the count sob uses)
+    replaces the board's ce_edep.selected_per_gen_event, which counts selected events differently."""
+    import numpy as np
+    names = sorted(c for c in g4 if c in fast and "sob.sensitivity" in g4[c] and "sensitivity" in fast[c]
+                   and c not in (exclude or []) and (g4_ce is None or c in g4_ce))
+    if len(names) < 3:
+        raise ValueError(f"only {len(names)} points have both a full-simulation and a fast sob")
+    gv = lambda key: np.array([g4[c][key] for c in names], float)
+    fv = lambda key: np.array([fast[c][key] for c in names], float)
+    G, F = gv("sob.sensitivity"), fv("sensitivity")
+    Ge = np.full(len(names), g4_sob_noise)
+    stop_rel = fv("stop_frac_err") / fv("stop_frac")
+    Fe = F * np.sqrt((fv("sensitivity_err") / F) ** 2 + stop_rel ** 2)
+    ratio = G / F
+    rerr = ratio * np.sqrt((Ge / G) ** 2 + (Fe / F) ** 2)
+    out: Dict[str, Any] = {"points": len(names), "sob": _rel_stats(ratio, rerr),
+                           "g4_acceptance": "refsob" if g4_ce else "board ce_edep.selected_per_gen_event"}
+    out["sob"]["common_scale_err"] = kappa_rel_err
+    lf, lg = np.log(F), np.log(G)
+    A = np.vstack([lf - lf.mean(), np.ones_like(lf)]).T
+    out["sob"]["slope_log"] = round(float(np.linalg.lstsq(A, lg - lg.mean(), rcond=None)[0][0]), 4)
+    out["sob"]["spearman"] = jackknife(spearman, F, G)
+    out["sob"]["kendall"] = jackknife(kendall, F, G)
+    out["sob"]["g4_range"] = [float(G.min()), float(G.max())]
+    out["sob"]["fast_range"] = [float(F.min()), float(F.max())]
+    # factors
+    Gs, Fs = gv("stops.stops_per_gen_event"), fv("stops_per_gen_event")
+    Gsn = gv("stops.n_gen_events")
+    Ga = np.array([g4_ce[c]["ce_acceptance"] for c in names], float) if g4_ce else gv("ce_edep.selected_per_gen_event")
+    Fa = fv("ce_acceptance")
+    Gan = gv("ce_edep.n_gen_events")
+    GS, GB = gv("sob.signal_rate"), gv("sob.total_background")
+    Gbox = GS / (SOB_NPOT_BR * Gs * SOB_UPSTREAM_EFF)
+    Fbox, FB = fv("box_eff_per_stop"), fv("total_background")
+    ga_rel = np.sqrt((1 - Ga) / (Ga * Gan))
+    factors = {   # name: (G4, fast, relative error of the ratio)
+        "stops_per_gen_event": (Gs, Fs, np.hypot(np.sqrt((1 - Gs) / (Gs * Gsn)), stop_rel)),
+        "ce_acceptance": (Ga, Fa, np.hypot(ga_rel, fv("ce_acceptance_err") / Fa)),
+        "box_eff_per_stop": (Gbox, Fbox, np.hypot(ga_rel, fv("box_eff_per_stop_err") / Fbox)),
+        "background": (GB, FB, fv("total_background_err") / FB),
+    }
+    gl, gh = gv("sob.signal_box_low_mev"), gv("sob.signal_box_high_mev")
+    fl, fh = fv("signal_box_low_mev"), fv("signal_box_high_mev")
+    same = (np.abs(gl - fl) < 1e-6) & (np.abs(gh - fh) < 1e-6)
+    out["factors"] = {}
+    for k, (g, f, rel) in factors.items():
+        # box-dependent factors on the points whose two windows coincide (a one-bin window move is a step in them)
+        m = same if k in ("box_eff_per_stop", "background") else np.ones(len(names), bool)
+        out["factors"][k] = _rel_stats(g[m] / f[m], g[m] / f[m] * rel[m])
+        out["factors"][k]["points"] = int(m.sum())
+        out["factors"][k]["spearman"] = jackknife(spearman, f, g)
+    out["box"] = {"low_diff_mev": {"mean": round(float(np.mean(gl - fl)), 3), "rms": round(float(np.std(gl - fl)), 3)},
+                  "high_diff_mev": {"mean": round(float(np.mean(gh - fh)), 3), "rms": round(float(np.std(gh - fh)), 3)},
+                  "same_box": int(same.sum()),
+                  "g4_width_median": float(np.median(gh - gl)), "fast_width_median": float(np.median(fh - fl))}
+    out["per_point"] = {c: {"g4": float(G[k]), "fast": float(F[k]), "fast_err": float(Fe[k]), "ratio": float(ratio[k]),
+                            "ratio_err": float(rerr[k]), "g4_box": [float(gl[k]), float(gh[k])],
+                            "fast_box": [float(fl[k]), float(fh[k])],
+                            **{f"{f}_ratio": float(factors[f][0][k] / factors[f][1][k]) for f in factors}}
+                        for k, c in enumerate(names)}
+    return out
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sp = ap.add_subparsers(dest="cmd", required=True)
@@ -246,6 +334,16 @@ def main(argv: Optional[List[str]] = None) -> int:
                    help="fixed scale (G4 stops per event / fast stops per muon) from outside the board, e.g. muons per event")
     c.add_argument("--exclude", action="append", default=[], help="config left out (repeatable)")
     c.add_argument("--json", type=Path)
+    o = sp.add_parser("compare-sob")
+    o.add_argument("--g4", required=True, type=Path)
+    o.add_argument("--fast", required=True, type=Path, help="collect output of beamfastsim.cesob point runs")
+    o.add_argument("--exclude", action="append", default=[], help="config left out (repeatable)")
+    o.add_argument("--g4-noise", dest="g4_noise", type=float, default=0.0021, help="statistical noise of G4 sob")
+    o.add_argument("--kappa-rel-err", dest="kappa_rel_err", type=float, default=0.0,
+                   help="common relative error of the fast stops normalisation")
+    o.add_argument("--g4-ce", dest="g4_ce", type=Path, default=None,
+                   help="JSON {config: refsob metrics on the point's own EdepAna ntuple} for the G4 acceptance")
+    o.add_argument("--json", type=Path)
     args = ap.parse_args(argv)
     if args.cmd == "extract":
         configs = [x for b in args.board for x in board_configs(b)]
@@ -256,6 +354,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         got = collect(args.runs)
         args.out.write_text(json.dumps(got, indent=1, sort_keys=True))
         print(f"{len(got)} points -> {args.out}")
+        return 0
+    if args.cmd == "compare-sob":
+        res = compare_sob(json.loads(args.g4.read_text()), json.loads(args.fast.read_text()), args.exclude,
+                          args.g4_noise, args.kappa_rel_err,
+                          json.loads(args.g4_ce.read_text()) if args.g4_ce else None)
+        print(json.dumps({k: v for k, v in res.items() if k != "per_point"}, indent=1))
+        if args.json:
+            args.json.write_text(json.dumps(res, indent=1, sort_keys=True))
         return 0
     res = compare(json.loads(args.g4.read_text()), json.loads(args.fast.read_text()), args.anchor, args.exclude, args.kappa)
     text = json.dumps({k: v for k, v in res.items() if k != "per_point"}, indent=1)

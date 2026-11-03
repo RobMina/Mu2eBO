@@ -18,6 +18,7 @@ from graph import latency, stand_in  # noqa: E402
 from tests.engine_fixtures import ENGINE_STUDIES  # noqa: E402
 
 FAST = ENGINE_STUDIES / "fastsim_foilspfbpz_stops.json"
+SOB = ENGINE_STUDIES / "fastsim_foilspfbpz_sob.json"
 G4 = ROOT / "mode_specs" / "foilspfbpz_ax.json"
 X = [99.15, 57.44, 123.46, 0.0178, 0.1449, 0.0607, 0.297, 0.296, 0.502, 121.24]
 
@@ -39,6 +40,12 @@ class TestFastTierGeometry(unittest.TestCase):
             self.assertEqual(sorted(fast), sorted(g4["kept"]))
             self.assertEqual(fast["hasTSdA"], ("bool", "false"))
             self.assertNotIn("stoppingTarget.holeRadius", fast)
+
+    def test_sob_tier_renders_the_same_overlay_as_the_stopping_tier(self):
+        sob = st.load_study_file(SOB)
+        a, b = json.loads(SOB.read_text()), json.loads(FAST.read_text())
+        self.assertEqual((a["knobs"], a["derive"]), (b["knobs"], b["derive"]))
+        self.assertEqual(stand_in.declarations(sob.geom.render(X)), stand_in.declarations(self.fast.geom.render(X)))
 
     @unittest.skipUnless(os.environ.get("FASTSIM_CODE_ROOT"), "needs FASTSIM_CODE_ROOT")
     def test_render_passes_fastsimkit_admission(self):
@@ -88,6 +95,29 @@ class TestStandInTools(unittest.TestCase):
         self.assertEqual(fixed["stops"]["kappa_source"], "given")
         self.assertEqual(fixed["stops"]["held_out_points"], 4)
         self.assertAlmostEqual(fixed["stops"]["ratio_mean"], 1.0, places=6)
+
+    def test_compare_sob_unscaled_with_factors(self):
+        g4, fast = {}, {}
+        for i, c in enumerate("abcde"):
+            spg, acc, box, bkg = 0.06 + 0.01 * i, 0.5 - 0.02 * i, 0.3, 300.0 + 10 * i
+            S = stand_in.SOB_NPOT_BR * spg * stand_in.SOB_UPSTREAM_EFF * box
+            g4[c] = {"sob.sensitivity": S / bkg ** 0.5, "sob.signal_rate": S, "sob.total_background": bkg,
+                     "sob.signal_box_low_mev": 103.3, "sob.signal_box_high_mev": 104.7,
+                     "stops.stops_per_gen_event": spg, "stops.n_gen_events": 3e6,
+                     "ce_edep.selected_per_gen_event": acc, "ce_edep.n_gen_events": 1.125e6}
+            fast[c] = {"sensitivity": 1.02 * S / bkg ** 0.5, "sensitivity_err": 0.005, "stop_frac": spg / 0.16,
+                       "stop_frac_err": 0.001, "stops_per_gen_event": spg, "ce_acceptance": acc / 0.98,
+                       "ce_acceptance_err": 0.002, "box_eff_per_stop": box, "box_eff_per_stop_err": 0.002,
+                       "total_background": bkg, "total_background_err": 1.0,
+                       "signal_box_low_mev": 103.3, "signal_box_high_mev": 104.7}
+        res = stand_in.compare_sob(g4, fast, kappa_rel_err=0.0077)
+        self.assertEqual(res["points"], 5)
+        self.assertAlmostEqual(res["sob"]["mean"], 1 / 1.02, places=4)
+        self.assertEqual(res["sob"]["spearman"]["value"], 1.0)
+        self.assertAlmostEqual(res["factors"]["ce_acceptance"]["mean"], 0.98, places=4)
+        self.assertAlmostEqual(res["factors"]["box_eff_per_stop"]["mean"], 1.0, places=6)
+        self.assertAlmostEqual(res["factors"]["stops_per_gen_event"]["mean"], 1.0, places=6)
+        self.assertEqual(res["box"]["same_box"], 5)
 
     def test_latency_timeline(self):
         self.point("a", 0.05, 1.0)

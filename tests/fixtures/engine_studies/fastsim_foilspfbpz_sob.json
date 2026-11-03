@@ -1,0 +1,306 @@
+{
+ "schema": 2,
+ "name": "fastsim_foilspfbpz_sob",
+ "note": "Fast sob tier of foilspfbpz_ax on fastsimkit (UVA, one CPU job per point): the same 10 knobs and derive and the same bounded target overlay as fastsim_foilspfbpz_stops, evaluated by beam_sob: the boards' own beam sample (MuBeamCat Run1Baa muons at the Coll5_Out plane, with its generated events) through the field map and the foils gives the target stops per generated event without a scale; conversion electrons from those stops run through the foils, IPA (with end rings), OPA and the DS field to the tracker entry; a calorimeter-acceptance proxy (the helix runs at least 17.8 mm inside the crystals of the Offline crystal map, the disks' inner Al and carbon-fibre rings crossed with the slab physics) stands in for the 10 MeV visible-energy selection; then the study's approximate sensitivity (0.2 MeV resolution, DIO with the measured entry-energy response, flat cosmics, best window). Objective: sob as in foilspfbpz_ax. Not modelled: tracker material before the calorimeter, the calorimeter front and back plates and front-end electronics, foil supports (off in the G4 study too), rails, service pipes, the degrader. Validation: docs/fast-sob-tier.md.",
+ "knobs": [
+  {
+   "name": "rOut_0",
+   "type": "real",
+   "min": 30.0,
+   "max": 150.0,
+   "unit": "",
+   "fmt": "{:.4f}"
+  },
+  {
+   "name": "rOut_1",
+   "type": "real",
+   "min": 30.0,
+   "max": 150.0,
+   "unit": "",
+   "fmt": "{:.4f}"
+  },
+  {
+   "name": "rOut_2",
+   "type": "real",
+   "min": 30.0,
+   "max": 150.0,
+   "unit": "",
+   "fmt": "{:.4f}"
+  },
+  {
+   "name": "hT_0",
+   "type": "real",
+   "min": 0.01,
+   "max": 0.15,
+   "unit": "",
+   "fmt": "{:.6f}"
+  },
+  {
+   "name": "hT_1",
+   "type": "real",
+   "min": 0.01,
+   "max": 0.15,
+   "unit": "",
+   "fmt": "{:.6f}"
+  },
+  {
+   "name": "hT_2",
+   "type": "real",
+   "min": 0.01,
+   "max": 0.15,
+   "unit": "",
+   "fmt": "{:.6f}"
+  },
+  {
+   "name": "f_0",
+   "type": "real",
+   "min": 0.0,
+   "max": 0.95,
+   "unit": "",
+   "fmt": "{:.4f}"
+  },
+  {
+   "name": "f_1",
+   "type": "real",
+   "min": 0.0,
+   "max": 0.95,
+   "unit": "",
+   "fmt": "{:.4f}"
+  },
+  {
+   "name": "f_2",
+   "type": "real",
+   "min": 0.0,
+   "max": 0.95,
+   "unit": "",
+   "fmt": "{:.4f}"
+  },
+  {
+   "name": "zmid",
+   "type": "real",
+   "min": -150.0,
+   "max": 150.0,
+   "unit": "",
+   "fmt": "{:.4f}"
+  }
+ ],
+ "derive": {
+  "consts": {
+   "n_foils": 49,
+   "z0": 5871.0,
+   "ipa_dist_deployed": 625.0,
+   "span_deployed": 800.0,
+   "extent": 1066.666667
+  },
+  "exprs": {
+   "deltaZ": "extent / 48",
+   "ipa_dist": "ipa_dist_deployed - (extent - span_deployed) / 2",
+   "halfext": "extent / 2"
+  },
+  "profiles": {
+   "rOut_p": {
+    "kind": "lagrange",
+    "count": "n_foils",
+    "control": [
+     "rOut_0",
+     "rOut_1",
+     "rOut_2"
+    ],
+    "clip": [
+     30.0,
+     150.0
+    ]
+   },
+   "hT_p": {
+    "kind": "lagrange",
+    "count": "n_foils",
+    "control": [
+     "hT_0",
+     "hT_1",
+     "hT_2"
+    ],
+    "clip": [
+     0.01,
+     0.15
+    ]
+   },
+   "f_p": {
+    "kind": "lagrange",
+    "count": "n_foils",
+    "control": [
+     "f_0",
+     "f_1",
+     "f_2"
+    ],
+    "clip": [
+     0.0,
+     0.95
+    ]
+   },
+   "zpos_p": {
+    "kind": "lagrange",
+    "count": "n_foils",
+    "control": [
+     "-halfext",
+     "zmid",
+     "halfext"
+    ],
+    "clip": [
+     -533.3333335,
+     533.3333335
+    ]
+   }
+  }
+ },
+ "geom": {
+  "writer": "offline_simpleconfig",
+  "base": "Offline/Mu2eG4/geom/geom_common.txt",
+  "lines": [
+   {
+    "comment": "Fast stopping tier of foilspfbpz_ax: the same knobs and derive, only the target overlay the beam fast stage models"
+   },
+   {
+    "comment": "rOut {rOut_0:.2f} -> {rOut_1:.2f} -> {rOut_2:.2f} mm; hT {hT_0:.4f} -> {hT_1:.4f} -> {hT_2:.4f} mm; f {f_0:.3f} -> {f_1:.3f} -> {f_2:.3f}; zmid {zmid:.2f} mm"
+   },
+   {
+    "key": "stoppingTarget.z0InMu2e",
+    "type": "double",
+    "expr": "z0",
+    "fmt": "{:.4f}"
+   },
+   {
+    "key": "stoppingTarget.deltaZ",
+    "type": "double",
+    "expr": "deltaZ",
+    "fmt": "{:.6f}"
+   },
+   {
+    "key": "stoppingTarget.radii",
+    "type": "vector<double>",
+    "fmt": "{:.4f}",
+    "per_index": {
+     "count": "n_foils",
+     "expr": "rOut_p[i]"
+    }
+   },
+   {
+    "key": "stoppingTarget.halfThicknesses",
+    "type": "vector<double>",
+    "fmt": "{:.6f}",
+    "per_index": {
+     "count": "n_foils",
+     "expr": "hT_p[i]"
+    }
+   },
+   {
+    "key": "stoppingTarget.holeRadii",
+    "type": "vector<double>",
+    "fmt": "{:.4f}",
+    "per_index": {
+     "count": "n_foils",
+     "expr": "f_p[i] * rOut_p[i]"
+    }
+   },
+   {
+    "key": "stoppingTarget.zVars",
+    "type": "vector<double>",
+    "fmt": "{:.4f}",
+    "per_index": {
+     "count": "n_foils",
+     "expr": "zpos_p[i] - (i - (n - 1) / 2) * deltaZ"
+    }
+   },
+   {
+    "key": "protonabsorber.distFromTargetEnd",
+    "type": "double",
+    "expr": "ipa_dist",
+    "fmt": "{:.6f}"
+   },
+   {
+    "key": "hasTSdA",
+    "type": "bool",
+    "value": false
+   }
+  ]
+ },
+ "kits": {},
+ "preflight": null,
+ "evaluate": [
+  {
+   "step": "beam",
+   "kit": "fastsimkit",
+   "entry": null,
+   "files": [
+    "geom"
+   ],
+   "files_from": [],
+   "params": {},
+   "params_from": {},
+   "fixed": {
+    "task": "beam_sob",
+    "muons": 0,
+    "electrons": 100000,
+    "seed": 20261101
+   }
+  }
+ ],
+ "objectives": [
+  {
+   "name": "sob",
+   "metric": "beam.sensitivity",
+   "direction": "max",
+   "transform": "none",
+   "noise": 0.01,
+   "fmt": "{:.5f}"
+  }
+ ],
+ "constraints": [],
+ "extra_metrics": [
+  {
+   "name": "sensitivity_err",
+   "metric": "beam.sensitivity_err",
+   "fmt": "{:.5f}"
+  },
+  {
+   "name": "stops_per_gen_event",
+   "metric": "beam.stops_per_gen_event",
+   "fmt": "{:.5f}"
+  },
+  {
+   "name": "ce_acceptance",
+   "metric": "beam.ce_acceptance",
+   "fmt": "{:.5f}"
+  },
+  {
+   "name": "box_eff_per_stop",
+   "metric": "beam.box_eff_per_stop",
+   "fmt": "{:.5f}"
+  },
+  {
+   "name": "total_background",
+   "metric": "beam.total_background",
+   "fmt": "{:.2f}"
+  },
+  {
+   "name": "signal_box_low_mev",
+   "metric": "beam.signal_box_low_mev",
+   "fmt": "{:.1f}"
+  },
+  {
+   "name": "signal_box_high_mev",
+   "metric": "beam.signal_box_high_mev",
+   "fmt": "{:.1f}"
+  },
+  {
+   "name": "ce_s",
+   "metric": "beam.ce_s",
+   "fmt": "{:.1f}"
+  }
+ ],
+ "extra_columns": [],
+ "leaderboard": {
+  "file": "leaderboards/leaderboard_fastsim_foilspfbpz_sob.tsv",
+  "layout": "v2",
+  "context": []
+ }
+}
