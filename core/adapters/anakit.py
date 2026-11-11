@@ -1,13 +1,13 @@
 """anakit as a contract kit: the adapter the engine drives for every
 `kit: "anakit"` step (wiki/external/anakit.md).
 
-anakit is M. MacKenzie's analysis MCP server, run from the checkout of his
-main that $AUTORESEARCH_ANAKIT names. Its mu2e jobs set up the published
-Musing the study's `musing` setting names (e.g. "SimJob MDC2025ay"), which
-the server is started on with --musing. A step names the analysis in its
-fixed `analysis`; every other param except the study's `musing` setting is
-passed to that analysis as a parameter. The physics lives in anakit; this
-module holds none.
+anakit is M. MacKenzie's analysis MCP server (github.com/Mu2e/analysis-mcp),
+run from the checkout of its main that $AUTORESEARCH_ANAKIT names. Its mu2e
+jobs set up the published Musing the study's `musing` setting names (e.g.
+"SimJob MDC2025ay"), which the server is started on with --musing. A step
+names the analysis in its fixed `analysis`; every other param except the
+study's `musing` setting is passed to that analysis as a parameter. The
+physics lives in anakit; this module holds none.
 
 anakit runs an analysis synchronously, and one server runs one at a time
 (FastMCP calls a sync tool on its event loop). So submit starts a server of
@@ -17,6 +17,13 @@ closes the server. The engine runs every step in its own thread, so the
 wait holds up nothing else. status and results only read that file. A point
 resumed after a crash mid-analysis has no handle for the step yet, so the
 analysis runs again.
+
+An analysis may declare metrics it reports only on some Musings (edep's
+*_nsteps_* need Offline PR #2067). results requires only the metrics the
+study reads, which the launch check (step_problems) records per step and
+submit writes into the result; a step submitted without that check requires
+every declared metric. The declared metrics the reply lacks are listed in
+the result metadata as `unreported_metrics`.
 """
 from __future__ import annotations
 
@@ -175,6 +182,8 @@ class AnakitKit:
             lambda cfg: KitClient(cfg, campaign=campaign, trace_dir=trace))
         self._grid_root = Path(grid_root or paths.GRID_DATA_ROOT)
         self._catalogues = {}
+        # {step: metric keys the study reads}, filled by step_problems
+        self._reads = {}
         self._lock = threading.Lock()
 
     # --- the Kit interface -------------------------------------------------
@@ -259,11 +268,13 @@ class AnakitKit:
             reply = self._call(client, "run_analysis", args, workflow)
         finally:
             client.close()
+        with self._lock:
+            reads = sorted(self._reads.get(step, spec["metrics"]))
         result_path = sdir / RESULT_NAME
         write_atomic(result_path, json.dumps({
             "handle": name, "analysis": analysis, "musing": musing,
             "version": self._version, "build": build,
-            "metrics": list(spec["metrics"]),
+            "metrics": list(spec["metrics"]), "reads": reads,
             "reply": reply}, indent=1, sort_keys=True))
         return name
 
@@ -302,22 +313,31 @@ class AnakitKit:
                                 f"broken.txt to run it again)")
         reply = rec["reply"]
         meta = dict(reply.get("metadata") or {})
-        missing = [m for m in rec["metrics"] if m not in meta]
+        # A record with no "reads" requires every declared metric.
+        missing = [m for m in rec.get("reads", rec["metrics"])
+                   if m not in meta]
         if missing:
             raise ContractError(self.name, "results", f"anakit's reply "
-                                f"lacks declared metric(s) {missing}")
-        metrics = {m: meta.pop(m) for m in rec["metrics"]}
+                                f"lacks declared metric(s) {missing}, which "
+                                f"the study reads")
+        metrics = {m: meta.pop(m) for m in rec["metrics"] if m in meta}
+        unreported = [m for m in rec["metrics"] if m not in metrics]
         files = [{"name": Path(p).name, "uri": Path(p).resolve().as_uri(),
                   "kind": Path(p).suffix.lstrip(".") or "file"}
                  for p in reply.get("files", [])]
         meta.update(message=reply.get("message"), musing=rec["musing"],
-                    adapter=rec["version"], build=rec.get("build"))
+                    adapter=rec["version"], build=rec.get("build"),
+                    unreported_metrics=unreported)
         return parse_results({"metrics": metrics, "files": files,
                               "metadata": meta}, self.name)
 
     # --- the launch check (contract.kit_step_problems) ---------------------
     def step_problems(self, study, step) -> list:
         where = f"step {step.step!r} (kit anakit)"
+        wanted = sorted(metrics_read(study, step.step))
+        with self._lock:
+            # a union: a KitSet checked on several studies requires more
+            self._reads.setdefault(step.step, set()).update(wanted)
         musing = study.kits.get(self.name, {}).get("musing")
         if not musing:
             return [f"{where}: kits.anakit.musing is not set"]
@@ -393,7 +413,6 @@ class AnakitKit:
             problems.append(f"{where}: anakit's list_analyses reply for "
                             f"analysis {analysis!r} has no 'metrics'")
             return problems
-        wanted = sorted(metrics_read(study, step.step))
         absent = [m for m in wanted if m not in spec["metrics"]]
         if absent:
             problems.append(f"{where}: {analysis} does not return {absent}")
