@@ -7,6 +7,8 @@ into output_dir so the adapter has a file to report.
 
 CATALOGUE is M. MacKenzie's list_analyses reply for the four analyses the
 studies run, as of his main at 3ba8d23 (descriptions and units dropped).
+Started with --unreported, it also declares UNREPORTED's metrics and never
+reports them, as edep's *_nsteps_* on an Offline without PR #2067.
 
 No `from __future__ import annotations` here (see tests/toykit.py).
 """
@@ -70,6 +72,22 @@ CATALOGUE = {
 }
 
 
+# edep's step counts as of github.com/Mu2e/analysis-mcp e40d3d4
+UNREPORTED = {"edep": [f"{det}_nsteps{cut}_{key}" for det in ("calo", "trk")
+                       for cut in ("", "_ecut", "_ecut_tcut")
+                       for key in ("total", "per_event", "per_gen_event")]}
+
+
+def declared(unreported):
+    """The catalogue list_analyses answers: CATALOGUE, plus UNREPORTED's
+    metrics when `unreported`."""
+    if not unreported:
+        return CATALOGUE
+    return {name: {**spec, "metrics": spec["metrics"]
+                   + UNREPORTED.get(name, [])}
+            for name, spec in CATALOGUE.items()}
+
+
 def started_with(argv):
     return argv[argv.index("--musing") + 1] if "--musing" in argv else None
 
@@ -79,11 +97,12 @@ def make_server():
 
     server = MCPServer("fakeanakit")
     musing = started_with(sys.argv)
+    catalogue = declared("--unreported" in sys.argv)
 
     @server.tool()
     def list_analyses() -> dict:
         return {"status": "success", "files": [], "message": "fake",
-                "metadata": {"analyses": CATALOGUE,
+                "metadata": {"analyses": catalogue,
                              "environment": f"Musing {musing}"}}
 
     @server.tool()
