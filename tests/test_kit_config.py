@@ -129,7 +129,8 @@ class TestRepoRegistry(unittest.TestCase):
                          {"task", "events", "seed", "rows", "sipms", "shards",
                           "files_per_job", "shard_offset", "max_events",
                           "wall_minutes", "gen_set", "geom", "muons", "repeat",
-                          "period", "tables", "background", "run_config", "chain_flags", "electrons"})
+                          "period", "tables", "background", "run_config", "chain_flags", "electrons",
+                          "dtype"})
         self.assertIn("/beam", cfg.set_env["PYTHONPATH"])     # beam_point (beamfastsim) on UVA
         decl = kit_registry.KITS["fastsimkit"]
         self.assertTrue(decl.step_kit)
@@ -140,7 +141,7 @@ class TestRepoRegistry(unittest.TestCase):
         cfg = kc.load_kit_configs()["fastsimkit_eaf"]
         self.assertEqual(cfg.set_env["FASTSIMKIT_ENDPOINT"], "eaf")
         self.assertIn("EAF_TOKEN_FILE", cfg.env_passthrough)
-        self.assertTrue({"shards", "max_events"} <= set(cfg.fixed_keys))
+        self.assertTrue({"shards", "max_events", "electrons", "dtype"} <= set(cfg.fixed_keys))   # beam_edep
         self.assertTrue(kit_registry.KITS["fastsimkit_eaf"].step_kit)
 
     def test_fastsim_eaf_regression_study_loads(self):
@@ -191,6 +192,18 @@ class TestRepoRegistry(unittest.TestCase):
         self.assertEqual(s.steps[0].fixed["task"], "beam_sob")
         self.assertEqual(s.steps[0].files, ("geom",))
         self.assertEqual([o.metric for o in s.objectives], ["beam.sensitivity"])
+
+    def test_fastsim_foilspfbpz_edep_study_chains_fastsimkit_into_anakit(self):
+        path = (Path(__file__).parent / "fixtures" / "engine_studies"
+                / "fastsim_foilspfbpz_edep.json")
+        s = st.load_study_file(path)
+        self.assertEqual(kit_registry.kits_of(s), {"fastsimkit_eaf", "anakit"})
+        ce, sob = s.steps
+        self.assertEqual((ce.fixed["task"], ce.files), ("beam_edep", ("geom",)))
+        self.assertEqual((sob.kit, sob.fixed["analysis"], sob.files_from), ("anakit", "approx_ce_sensitivity", ("ce_fast",)))
+        self.assertEqual(sob.params_from, {"stops_per_pot": "ce_fast.stops_per_pot"})
+        self.assertEqual(sob.upstream, ("ce_fast",))
+        self.assertEqual([o.metric for o in s.objectives], ["sob.sensitivity"])
 
     def test_fastsim_beam_point_study_loads(self):
         path = (Path(__file__).parent / "fixtures" / "engine_studies"

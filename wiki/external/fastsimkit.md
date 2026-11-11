@@ -4,7 +4,7 @@ title: fastsimkit — the Mu2e JAX fast chain as a native kit
 description: 'Native contract kit (kits.toml) for the JAX CRV fast sim/reco of RobMina/mu2e-fastsim on a compute endpoint, one Slurm job per point; UVA Rivanna/Afton over ssh today; smoke task reco_bench passes end to end (2026-10-21); kit host must be on the UVA network'
 status: active
 status_note: 'tasks live: reco_bench, response_bench, v4_response, chain_point; EAF: chain, regression, veto_c4, beam_point'
-timestamp: '2026-11-03'
+timestamp: '2026-11-11'
 ---
 
 # fastsimkit — the Mu2e JAX fast chain as a native kit
@@ -200,6 +200,25 @@ on one GPU.
   Spearman 0.993. `graph.stand_in compare-sob --g4-ce`: the G4 acceptance must come from the estimate on the
   point's own EdepAna ntuple, because the board key `ce_edep.selected_per_gen_event` counts something else.
 - **graph.run on UVA**: 20.5 min launch to row (queue 3 min, job 16.7 min), against 248 min (median).
+
+## File-level fast tier of foilspfbpz_ax (`fastsim_foilspfbpz_edep`, 2026-11-11)
+- Two steps:
+  - `ce_fast`: fastsimkit task `beam_edep`. It writes the EdepAna file (`EDepAna/tree` with EdepAna's branches,
+    types and running `ngen`) for the point's target, plus the `edep` run record and summary block beside it.
+  - `sob`: foilspfbpz_ax's own anakit step, unchanged. `approx_ce_sensitivity` reads that file, with `stops_per_pot`
+    from `ce_fast` through `params_from`.
+- So the estimate's physics stays in the analysis server. The fast side replaces only the `mubeam` -> `mustops_ce` ->
+  `edep` file.
+- `beam_edep` returns the ROOT file as its only FileRef, because a chained step takes all upstream files as inputs and
+  `approx_ce_sensitivity` takes one.
+- **File-transfer constraint.** anakit reads its input from the engine host's disk: the Musing on CVMFS and the DIO
+  table on /exp. So the engine runs on a FNAL host and the fastsimkit step uses `fastsimkit_eaf`, whose fetched
+  `out/` lands under DATA_ROOT on /exp.
+  - EAF gives one GPU slice per user; points queue.
+  - The UVA kit answers only on the UVA network, so a UVA-run file must be copied to FNAL storage, with its
+    `.edep.json` run record beside it, before the sob step runs.
+- `kits.toml`: `dtype` (string) is a fixed key of both fastsim kits; `electrons` is now one of `fastsimkit_eaf` too.
+- Validation, contract and coverage: mu2e-fastsim `beam/docs/edepana.md`; the private EDEPW record.
 
 ## Open questions / TODO
 - Input streaming dominates a short `chain_point` job (the FNAL leg runs at
