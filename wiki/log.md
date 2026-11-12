@@ -8,6 +8,7 @@ superseded, linted.
 
 ## 2026-11-11
 - **updated** [fastsimkit](/external/fastsimkit.md): file-level fast tier `fastsim_foilspfbpz_edep` (fastsimkit `beam_edep` writes the EdepAna file -> anakit `approx_ce_sensitivity` via `params_from` stops_per_pot); file-transfer constraint (engine on a FNAL host with `fastsimkit_eaf`); kits.toml `dtype` key
+- **updated** [anakit](/external/anakit.md): results requires only the metrics the study reads (`reads`, `unreported_metrics`); server now github.com/Mu2e/analysis-mcp; review of 3ba8d23 -> e40d3d4 (edep's step counts, declared but unreported on MDC2025ay)
 
 ## 2026-11-03
 - **updated** [fastsimkit](/external/fastsimkit.md): fast sob tier `fastsim_foilspfbpz_sob` (task `beam_sob`, 20.5 min per point on UVA CPU), validation on 65 G4 board points, `compare-sob --g4-ce`; record docs/fast-sob-tier.md

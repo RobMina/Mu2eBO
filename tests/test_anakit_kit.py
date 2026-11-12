@@ -24,7 +24,7 @@ from kit_config import ServerConfig  # noqa: E402
 from kits import KitError  # noqa: E402
 from study import Step  # noqa: E402
 from tests.engine_fixtures import TmpCase  # noqa: E402
-from tests.fakeanakit import CATALOGUE  # noqa: E402
+from tests.fakeanakit import CATALOGUE, UNREPORTED, declared  # noqa: E402
 
 MUSING = "SimJob MDC2025ay"
 STOPS_METRICS = {"n_events": 296174.0, "n_gen_events": 3e6, "prescale": 1.0,
@@ -32,6 +32,9 @@ STOPS_METRICS = {"n_events": 296174.0, "n_gen_events": 3e6, "prescale": 1.0,
 SUCCESS = {"status": "success", "files": [], "message": "muon_stop_rate ok",
            "metadata": {**STOPS_METRICS, "analysis": "muon_stop_rate",
                         "log_path": "/x.log"}}
+EDEP_METRICS = {m: 1.0 for m in CATALOGUE["edep"]["metrics"]}
+EDEP_SUCCESS = {"status": "success", "files": [], "message": "edep ok",
+                "metadata": {**EDEP_METRICS, "analysis": "edep"}}
 
 
 def server(**timeouts):
@@ -627,6 +630,100 @@ class TestStepProblems(_Kit):
             problems = self.kit().step_problems(study, step)
         expanded = str(self.tmp / "t.tbl")
         self.assertTrue(any(expanded in p for p in problems), problems)
+
+
+def one_step_study(name, fixed, metric, files_from=("mubeam",)):
+    """A study of one anakit step whose objective reads `metric`."""
+    step = Step(name, "anakit", None, (), tuple(files_from), {}, {}, fixed)
+    study = types.SimpleNamespace(
+        kits={"anakit": {"musing": MUSING}}, steps=(step,),
+        objectives=(types.SimpleNamespace(metric=metric),), extra_metrics=())
+    return study, step
+
+
+class TestDeclaredButUnreported(_Kit):
+    """edep declares its *_nsteps_* metrics on every Musing but reports them
+    only with Offline PR #2067: results requires only what the study reads."""
+
+    READ = "avg_trk_edep_per_gen_event_mev"
+    NSTEPS = "trk_nsteps_ecut_tcut_per_event"
+
+    def run_flash(self, kit, metric, launch_check=True):
+        study, step = one_step_study("flash", {"analysis": "edep"},
+                                     f"flash.{metric}")
+        if launch_check:
+            self.assertEqual(kit.step_problems(study, step), [])
+        kit.submit("cfg1.flash", {"musing": MUSING, "analysis": "edep"}, [],
+                   self.inputs, "w")
+        self.assertEqual(kit.status("cfg1.flash", "w").state, "completed")
+        return kit
+
+    def kit_unreported(self):
+        return self.kit(reply=EDEP_SUCCESS, catalogue=declared(True))
+
+    def test_an_unreported_metric_the_study_does_not_read_passes(self):
+        kit = self.run_flash(self.kit_unreported(), self.READ)
+        self.assertEqual(self.record("flash")["reads"], [self.READ])
+        res = kit.results("cfg1.flash", "w")
+        self.assertEqual(res.metrics, EDEP_METRICS)
+        self.assertEqual(res.metadata["unreported_metrics"],
+                         UNREPORTED["edep"])
+
+    def test_an_unreported_metric_the_study_reads_fails(self):
+        kit = self.run_flash(self.kit_unreported(), self.NSTEPS)
+        with self.assertRaises(ContractError) as cm:
+            kit.results("cfg1.flash", "w")
+        self.assertIn(f"lacks declared metric(s) ['{self.NSTEPS}']",
+                      str(cm.exception))
+
+    def test_without_the_launch_check_every_declared_metric_is_required(self):
+        kit = self.run_flash(self.kit_unreported(), self.READ,
+                             launch_check=False)
+        self.assertEqual(self.record("flash")["reads"],
+                         sorted(declared(True)["edep"]["metrics"]))
+        with self.assertRaises(ContractError) as cm:
+            kit.results("cfg1.flash", "w")
+        self.assertIn(self.NSTEPS, str(cm.exception))
+
+    def test_a_record_without_reads_requires_every_declared_metric(self):
+        kit = self.run_flash(self.kit_unreported(), self.READ)
+        path = self.sdir(step="flash") / ak.RESULT_NAME
+        rec = json.loads(path.read_text())
+        del rec["reads"]
+        path.write_text(json.dumps(rec))
+        with self.assertRaises(ContractError) as cm:
+            kit.results("cfg1.flash", "w")
+        self.assertIn(self.NSTEPS, str(cm.exception))
+
+    def test_a_reported_metric_is_not_listed_as_unreported(self):
+        kit = self.run_flash(self.kit(reply=EDEP_SUCCESS), self.READ)
+        res = kit.results("cfg1.flash", "w")
+        self.assertEqual(res.metadata["unreported_metrics"], [])
+
+    def test_through_the_real_client(self):
+        cfg = ServerConfig(name="anakit",
+                           command=(sys.executable,
+                                    str(ROOT / "tests" / "fakeanakit.py"),
+                                    "--unreported"),
+                           env_passthrough=(), set_env={},
+                           timeouts={"start": 60, "list_analyses": 30,
+                                     "run_analysis": 3600})
+        for metric, passes in ((self.READ, True), (self.NSTEPS, False)):
+            with self.subTest(metric=metric), \
+                 mock.patch.object(paths, "GRAPH_DATA", self.tmp / "graph"):
+                kit = self.run_flash(
+                    ak.AnakitKit("camp", server=cfg,
+                                 grid_root=self.tmp / "grid",
+                                 checkout=self.checkout), metric)
+                if passes:
+                    res = kit.results("cfg1.flash", "w")
+                    self.assertEqual(res.metrics[self.READ], 6.58e-6)
+                    self.assertEqual(res.metadata["unreported_metrics"],
+                                     UNREPORTED["edep"])
+                else:
+                    with self.assertRaises(ContractError) as cm:
+                        kit.results("cfg1.flash", "w")
+                    self.assertIn(self.NSTEPS, str(cm.exception))
 
 
 class TestOverStdio(_Kit):

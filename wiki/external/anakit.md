@@ -3,14 +3,15 @@ type: external
 title: anakit — M. MacKenzie's analysis MCP server
 description: 'M. MacKenzie''s analysis MCP server, checkout of his main pinned at 3ba8d23, run on the SimJob MDC2025ay Musing; feeds the _ax studies and ce_chain; needs mcp<2 (ana 2.7.0, -P)'
 status: active
-timestamp: '2026-10-08'
+timestamp: '2026-11-11'
 ---
 
 # anakit — M. MacKenzie's analysis MCP server
 
 ## Summary
 anakit is M. MacKenzie's analysis MCP server
-(github.com/michaelmackenzie/analysis-mcp-server). The contract engine
+(github.com/Mu2e/analysis-mcp, formerly
+michaelmackenzie/analysis-mcp-server). The contract engine
 drives it through `core/adapters/anakit.py`
 ([contract-engine](/drivers/contract-engine.md), "anakit kit") for every
 `kit: "anakit"` step. Since 2026-10-07 the physics lives only in his repo:
@@ -41,6 +42,14 @@ with three analyses of our own; a short history is kept below.
   engine itself does not refuse a newer commit (a step records its
   build); bump the pin after re-validating.
 - `VERSION = "anakit-adapter/2"` (2026-10-07): the server runs on a Musing.
+- **Declared vs reported metrics:** `results` requires only the metrics
+  the study reads (objectives, extra metrics, `params_from`); the launch
+  check records them per step and `submit` writes them into
+  `anakit_result.json` as `reads`. A declared metric the reply lacks is
+  listed in the result metadata as `unreported_metrics`; a record without
+  `reads` (a submit with no launch check) requires every declared metric.
+  `tests/fakeanakit.py --unreported` declares edep's 18 step counts and never
+  reports them.
 - The adapter reads each analysis's `input_kind` from `list_analyses`; a
   missing kind or one outside `INPUT_KINDS = ("art_files", "root_file")`
   is refused at launch and at `submit`.
@@ -99,6 +108,20 @@ with three analyses of our own; a short history is kept below.
   the refill bpzup02-21 and the `nomup01` baseline (sob 1.14014, flash
   7.50675e-06 = the damage budget to 6 digits).
 
+**Review of 3ba8d23 -> e40d3d4 (2026-11-11)**
+- Read-only review of the four analyses and what they import: no change to
+  the numbers of the five anakit studies except `edep`'s catalogue. At
+  e40d3d4 `edep` declares 18 `{calo,trk}_nsteps{,_ecut,_ecut_tcut}_{total,
+  per_event,per_gen_event}` metrics on every Musing but reports them only
+  where the Offline has PR #2067, which SimJob MDC2025ay lacks. Requiring
+  every declared metric failed every `edep` step (`ce_edep`, `flash`, so
+  `sob` too) after its ~15 min job; the launch check, which checks only
+  metrics read, passed.
+- With the adapter requiring only metrics read, the pin can move once the
+  acceptance numbers below are reproduced at e40d3d4. `muminus_stops_per_pot`
+  (new in `muon_stop_rate`) is left unread: whether the studies should use it
+  is a physics decision.
+
 **`ce_chain`**
 - The `plot` step is `trigger_efficiency_ntuple` with `trigger_paths`
   `"apr_TrkDe_80m70p, cpr_TrkDe_80m70p"`; objective `n_selected`, extra
@@ -149,8 +172,9 @@ with three analyses of our own; a short history is kept below.
 - Source files: `core/adapters/anakit.py`, `kits.toml[servers.anakit]`,
   `core/kit_registry.py` (`KitDecl("anakit", ...)`),
   `tests/test_anakit_kit.py`, `tests/fakeanakit.py`
-- External: github.com/michaelmackenzie/analysis-mcp-server; the checkout
-  at `$AUTORESEARCH_ANAKIT`
+- External: github.com/Mu2e/analysis-mcp (formerly
+  michaelmackenzie/analysis-mcp-server); the checkout at
+  `$AUTORESEARCH_ANAKIT`
 
 ## Open questions / TODO
 - The sob `noise` 0.0021 is the old scale's 0.006 x 0.3474; re-measure it
