@@ -1,0 +1,323 @@
+{
+  "schema": 2,
+  "name": "fastsim_foilspfbpz_edep",
+  "note": "File-level fast tier of foilspfbpz_ax: a fastsimkit step (task beam_edep) writes the EdepAna file (EDepAna/tree, as Offline EdepAna writes it on mustops_ce) for the point's target from the boards' own beam sample: target stops per generated event without a scale, conversion electrons from those stops through the device chain (foils, IPA, OPA, DS field, tracker straws with the albedo), the calorimeter shower library at the disk fronts and the wall proxy for inner-edge entries, and the CeEndpoint storage filter. The anakit step is foilspfbpz_ax's own sob step, unchanged: approx_ce_sensitivity (M. MacKenzie's analysis at the pinned commit) on that file, with stops_per_pot from the fastsimkit step through params_from, so the physics of the estimate stays in the analysis server. File transfer: anakit reads its input from the engine host's disk (the Musing on CVMFS and the DIO table on /exp), so the engine runs on a FNAL host and the fastsimkit step uses the EAF kit (fastsimkit_eaf: its fetched out/ lands under DATA_ROOT on /exp; one GPU slice per user, points queue). The UVA kit answers only on the UVA network, so on UVA the file must be copied to FNAL storage (with its .edep.json run record) before the sob step. Validation: the mu2e-fastsim beam/docs/edepana.md record and the EDEPW wiki entry.",
+  "knobs": [
+    {
+      "name": "rOut_0",
+      "type": "real",
+      "min": 30.0,
+      "max": 150.0,
+      "unit": "",
+      "fmt": "{:.4f}"
+    },
+    {
+      "name": "rOut_1",
+      "type": "real",
+      "min": 30.0,
+      "max": 150.0,
+      "unit": "",
+      "fmt": "{:.4f}"
+    },
+    {
+      "name": "rOut_2",
+      "type": "real",
+      "min": 30.0,
+      "max": 150.0,
+      "unit": "",
+      "fmt": "{:.4f}"
+    },
+    {
+      "name": "hT_0",
+      "type": "real",
+      "min": 0.01,
+      "max": 0.15,
+      "unit": "",
+      "fmt": "{:.6f}"
+    },
+    {
+      "name": "hT_1",
+      "type": "real",
+      "min": 0.01,
+      "max": 0.15,
+      "unit": "",
+      "fmt": "{:.6f}"
+    },
+    {
+      "name": "hT_2",
+      "type": "real",
+      "min": 0.01,
+      "max": 0.15,
+      "unit": "",
+      "fmt": "{:.6f}"
+    },
+    {
+      "name": "f_0",
+      "type": "real",
+      "min": 0.0,
+      "max": 0.95,
+      "unit": "",
+      "fmt": "{:.4f}"
+    },
+    {
+      "name": "f_1",
+      "type": "real",
+      "min": 0.0,
+      "max": 0.95,
+      "unit": "",
+      "fmt": "{:.4f}"
+    },
+    {
+      "name": "f_2",
+      "type": "real",
+      "min": 0.0,
+      "max": 0.95,
+      "unit": "",
+      "fmt": "{:.4f}"
+    },
+    {
+      "name": "zmid",
+      "type": "real",
+      "min": -150.0,
+      "max": 150.0,
+      "unit": "",
+      "fmt": "{:.4f}"
+    }
+  ],
+  "derive": {
+    "consts": {
+      "n_foils": 49,
+      "z0": 5871.0,
+      "ipa_dist_deployed": 625.0,
+      "span_deployed": 800.0,
+      "extent": 1066.666667
+    },
+    "exprs": {
+      "deltaZ": "extent / 48",
+      "ipa_dist": "ipa_dist_deployed - (extent - span_deployed) / 2",
+      "halfext": "extent / 2"
+    },
+    "profiles": {
+      "rOut_p": {
+        "kind": "lagrange",
+        "count": "n_foils",
+        "control": [
+          "rOut_0",
+          "rOut_1",
+          "rOut_2"
+        ],
+        "clip": [
+          30.0,
+          150.0
+        ]
+      },
+      "hT_p": {
+        "kind": "lagrange",
+        "count": "n_foils",
+        "control": [
+          "hT_0",
+          "hT_1",
+          "hT_2"
+        ],
+        "clip": [
+          0.01,
+          0.15
+        ]
+      },
+      "f_p": {
+        "kind": "lagrange",
+        "count": "n_foils",
+        "control": [
+          "f_0",
+          "f_1",
+          "f_2"
+        ],
+        "clip": [
+          0.0,
+          0.95
+        ]
+      },
+      "zpos_p": {
+        "kind": "lagrange",
+        "count": "n_foils",
+        "control": [
+          "-halfext",
+          "zmid",
+          "halfext"
+        ],
+        "clip": [
+          -533.3333335,
+          533.3333335
+        ]
+      }
+    }
+  },
+  "geom": {
+    "writer": "offline_simpleconfig",
+    "base": "Offline/Mu2eG4/geom/geom_common.txt",
+    "lines": [
+      {
+        "comment": "Fast stopping tier of foilspfbpz_ax: the same knobs and derive, only the target overlay the beam fast stage models"
+      },
+      {
+        "comment": "rOut {rOut_0:.2f} -> {rOut_1:.2f} -> {rOut_2:.2f} mm; hT {hT_0:.4f} -> {hT_1:.4f} -> {hT_2:.4f} mm; f {f_0:.3f} -> {f_1:.3f} -> {f_2:.3f}; zmid {zmid:.2f} mm"
+      },
+      {
+        "key": "stoppingTarget.z0InMu2e",
+        "type": "double",
+        "expr": "z0",
+        "fmt": "{:.4f}"
+      },
+      {
+        "key": "stoppingTarget.deltaZ",
+        "type": "double",
+        "expr": "deltaZ",
+        "fmt": "{:.6f}"
+      },
+      {
+        "key": "stoppingTarget.radii",
+        "type": "vector<double>",
+        "fmt": "{:.4f}",
+        "per_index": {
+          "count": "n_foils",
+          "expr": "rOut_p[i]"
+        }
+      },
+      {
+        "key": "stoppingTarget.halfThicknesses",
+        "type": "vector<double>",
+        "fmt": "{:.6f}",
+        "per_index": {
+          "count": "n_foils",
+          "expr": "hT_p[i]"
+        }
+      },
+      {
+        "key": "stoppingTarget.holeRadii",
+        "type": "vector<double>",
+        "fmt": "{:.4f}",
+        "per_index": {
+          "count": "n_foils",
+          "expr": "f_p[i] * rOut_p[i]"
+        }
+      },
+      {
+        "key": "stoppingTarget.zVars",
+        "type": "vector<double>",
+        "fmt": "{:.4f}",
+        "per_index": {
+          "count": "n_foils",
+          "expr": "zpos_p[i] - (i - (n - 1) / 2) * deltaZ"
+        }
+      },
+      {
+        "key": "protonabsorber.distFromTargetEnd",
+        "type": "double",
+        "expr": "ipa_dist",
+        "fmt": "{:.6f}"
+      },
+      {
+        "key": "hasTSdA",
+        "type": "bool",
+        "value": false
+      }
+    ]
+  },
+  "kits": {
+    "anakit": {
+      "musing": "SimJob MDC2025ay"
+    }
+  },
+  "preflight": null,
+  "evaluate": [
+    {
+      "step": "ce_fast",
+      "kit": "fastsimkit_eaf",
+      "entry": null,
+      "files": [
+        "geom"
+      ],
+      "files_from": [],
+      "params": {},
+      "params_from": {},
+      "fixed": {
+        "task": "beam_edep",
+        "muons": 0,
+        "electrons": 200000,
+        "seed": 20261111,
+        "dtype": "float64"
+      }
+    },
+    {
+      "step": "sob",
+      "kit": "anakit",
+      "entry": null,
+      "files": [],
+      "files_from": [
+        "ce_fast"
+      ],
+      "params": {},
+      "params_from": {
+        "stops_per_pot": "ce_fast.stops_per_pot"
+      },
+      "fixed": {
+        "analysis": "approx_ce_sensitivity",
+        "cosmic_rate_per_s_per_mev": 0.0018181818181818182
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "name": "sob",
+      "metric": "sob.sensitivity",
+      "direction": "max",
+      "transform": "none",
+      "noise": 0.01,
+      "fmt": "{:.5f}"
+    }
+  ],
+  "constraints": [],
+  "extra_metrics": [
+    {
+      "name": "stops_per_pot",
+      "metric": "ce_fast.stops_per_pot",
+      "fmt": "{:.6e}"
+    },
+    {
+      "name": "ce_acceptance",
+      "metric": "ce_fast.ce_acceptance",
+      "fmt": "{:.5f}"
+    },
+    {
+      "name": "event_rate",
+      "metric": "ce_fast.event_rate",
+      "fmt": "{:.5f}"
+    },
+    {
+      "name": "signal_box_low_mev",
+      "metric": "sob.signal_box_low_mev",
+      "fmt": "{:.1f}"
+    },
+    {
+      "name": "signal_box_high_mev",
+      "metric": "sob.signal_box_high_mev",
+      "fmt": "{:.1f}"
+    },
+    {
+      "name": "total_background",
+      "metric": "sob.total_background",
+      "fmt": "{:.2f}"
+    },
+    {
+      "name": "wall_s",
+      "metric": "ce_fast.wall_s",
+      "fmt": "{:.1f}"
+    }
+  ],
+  "extra_columns": [],
+  "leaderboard": {
+    "file": "leaderboards/leaderboard_fastsim_foilspfbpz_edep.tsv",
+    "layout": "v2",
+    "context": []
+  }
+}
